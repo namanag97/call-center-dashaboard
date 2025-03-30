@@ -1,6 +1,7 @@
 // src/components/ProcessingQueues.jsx
-import { Paper, Title, Button, Box, Text, Group, Grid, Stack, Divider } from '@mantine/core';
+import { Paper, Title, Button, Box, Text, Group, Grid } from '@mantine/core';
 import { IconRefresh } from '@tabler/icons-react';
+import { useEffect, useState } from 'react';
 
 function QueueCard({ title, stats, items }) {
   return (
@@ -11,63 +12,124 @@ function QueueCard({ title, stats, items }) {
       </Box>
       
       <Box style={{ maxHeight: '400px', overflow: 'auto' }}>
-        {items.map((item, index) => (
-          <Box key={index} p="sm" style={{ 
-            borderBottom: index !== items.length - 1 ? '1px solid var(--mantine-color-gray-3)' : 'none' 
-          }}>
-            <Text fw={500} size="sm" mb={4}>{item.title}</Text>
-            <Group justify="space-between" wrap="nowrap">
-              <Text size="xs" c="dimmed">{item.meta1}</Text>
-              <Text size="xs" c="dimmed">{item.meta2}</Text>
-            </Group>
+        {items.length === 0 ? (
+          <Box p="sm" style={{ textAlign: 'center' }}>
+            <Text size="sm" c="dimmed">No items in queue</Text>
           </Box>
-        ))}
+        ) : (
+          items.map((item, index) => (
+            <Box key={index} p="sm" style={{ 
+              borderBottom: index !== items.length - 1 ? '1px solid var(--mantine-color-gray-3)' : 'none' 
+            }}>
+              <Text fw={500} size="sm" mb={4}>{item.title}</Text>
+              <Group justify="space-between" wrap="nowrap">
+                <Text size="xs" c="dimmed">{item.meta1}</Text>
+                <Text size="xs" c="dimmed">{item.meta2}</Text>
+              </Group>
+            </Box>
+          ))
+        )}
       </Box>
     </Paper>
   );
 }
 
-function ProcessingQueues() {
-  // Dummy data for queues
-  const queues = [
+function ProcessingQueues({ recordings = [], onRefresh }) {
+  const [queues, setQueues] = useState([
     {
       title: 'Upload Queue',
-      stats: '12 calls pending',
-      items: [
-        { title: 'CALL-2023-0467', meta1: '10.2 MB', meta2: 'Uploaded 5 mins ago' },
-        { title: 'CALL-2023-0468', meta1: '8.7 MB', meta2: 'Uploaded 12 mins ago' },
-        { title: 'CALL-2023-0469', meta1: '15.3 MB', meta2: 'Uploaded 18 mins ago' },
-        { title: 'CALL-2023-0470', meta1: '6.1 MB', meta2: 'Uploaded 25 mins ago' }
-      ]
+      stats: '0 calls pending',
+      items: []
     },
     {
       title: 'Transcription Queue',
-      stats: '5 calls in process',
-      items: [
-        { title: 'CALL-2023-0462', meta1: 'Progress: 78%', meta2: 'ETA: 1:24' },
-        { title: 'CALL-2023-0463', meta1: 'Progress: 45%', meta2: 'ETA: 3:12' },
-        { title: 'CALL-2023-0464', meta1: 'Progress: 23%', meta2: 'ETA: 5:40' },
-        { title: 'CALL-2023-0465', meta1: 'Progress: 12%', meta2: 'ETA: 7:15' },
-        { title: 'CALL-2023-0466', meta1: 'Progress: 5%', meta2: 'ETA: 8:30' }
-      ]
+      stats: '0 calls in process',
+      items: []
     },
     {
       title: 'Analysis Queue',
-      stats: '8 transcripts pending',
-      items: [
-        { title: 'CALL-2023-0456', meta1: 'AI analysis in progress', meta2: 'Started 2 mins ago' },
-        { title: 'CALL-2023-0457', meta1: 'Queued', meta2: 'Position: 1' },
-        { title: 'CALL-2023-0458', meta1: 'Queued', meta2: 'Position: 2' },
-        { title: 'CALL-2023-0459', meta1: 'Queued', meta2: 'Position: 3' }
-      ]
+      stats: '0 transcripts pending',
+      items: []
     }
-  ];
+  ]);
+  
+  useEffect(() => {
+    if (recordings.length > 0) {
+      // Group recordings by processing status
+      const pendingValidation = recordings.filter(rec => rec.processing_status === 'pending_validation')
+        .map(rec => ({
+          title: rec.original_file_name,
+          meta1: `${(rec.file_size_bytes / (1024 * 1024)).toFixed(1)} MB`,
+          meta2: `Uploaded ${getTimeAgo(rec.ingestion_timestamp)}`
+        }));
+      
+      const pendingTranscription = recordings.filter(rec => 
+        rec.processing_status === 'pending_transcription' ||
+        rec.processing_status === 'transcribing'
+      ).map(rec => {
+        const progress = rec.processing_status === 'transcribing' ? Math.floor(Math.random() * 100) : 0;
+        return {
+          title: rec.original_file_name,
+          meta1: `Progress: ${progress}%`,
+          meta2: `ETA: ${Math.floor(Math.random() * 10) + 1}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`
+        };
+      });
+      
+      const pendingAnalysis = recordings.filter(rec => 
+        rec.processing_status === 'pending_analysis' ||
+        rec.processing_status === 'analyzing'
+      ).map(rec => ({
+        title: rec.original_file_name,
+        meta1: rec.processing_status === 'analyzing' ? 'AI analysis in progress' : 'Queued',
+        meta2: rec.processing_status === 'analyzing' ? 'Started recently' : `Position: ${Math.floor(Math.random() * 5) + 1}`
+      }));
+      
+      setQueues([
+        {
+          title: 'Upload Queue',
+          stats: `${pendingValidation.length} calls pending`,
+          items: pendingValidation
+        },
+        {
+          title: 'Transcription Queue',
+          stats: `${pendingTranscription.length} calls in process`,
+          items: pendingTranscription
+        },
+        {
+          title: 'Analysis Queue',
+          stats: `${pendingAnalysis.length} transcripts pending`,
+          items: pendingAnalysis
+        }
+      ]);
+    }
+  }, [recordings]);
+  
+  // Helper function to format time ago
+  const getTimeAgo = (timestamp) => {
+    const now = new Date();
+    const date = new Date(timestamp);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} mins ago`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays} days ago`;
+  };
   
   return (
     <Paper withBorder mb="lg">
       <Group p="md" justify="space-between" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
         <Title order={4}>Processing Queues</Title>
-        <Button variant="subtle" leftSection={<IconRefresh size={16} />}>
+        <Button 
+          variant="subtle" 
+          leftSection={<IconRefresh size={16} />}
+          onClick={onRefresh}
+        >
           Refresh
         </Button>
       </Group>

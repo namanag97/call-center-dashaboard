@@ -11,56 +11,92 @@ import {
     Box
   } from '@mantine/core';
   import { IconEye } from '@tabler/icons-react';
+  import { useNavigate } from 'react-router-dom';
+  import { useEffect, useState } from 'react';
   
-  function RecentCalls() {
-    // Dummy data for calls
-    const calls = [
-      {
-        id: 'CALL-2023-0452',
-        dateTime: 'Aug 21, 2023 14:35',
-        duration: '08:42',
-        category: 'Account Access > Login Issue > Password Reset',
-        severity: { label: 'Medium', color: 'yellow' },
-        status: { label: 'Resolved', color: 'teal' },
-        agent: 'Raj Sharma'
-      },
-      {
-        id: 'CALL-2023-0451',
-        dateTime: 'Aug 21, 2023 13:22',
-        duration: '15:18',
-        category: 'Transactions > Failed Transfer > Technical Error',
-        severity: { label: 'Critical', color: 'red' },
-        status: { label: 'Escalated', color: 'blue' },
-        agent: 'Priya Patel'
-      },
-      {
-        id: 'CALL-2023-0450',
-        dateTime: 'Aug 21, 2023 11:05',
-        duration: '04:37',
-        category: 'Product Info > Investment Plans > Documentation',
-        severity: { label: 'Low', color: 'blue' },
-        status: { label: 'Resolved', color: 'teal' },
-        agent: 'Amit Kumar'
-      },
-      {
-        id: 'CALL-2023-0449',
-        dateTime: 'Aug 21, 2023 10:18',
-        duration: '12:45',
-        category: 'Customer Service > Complaint > Service Delay',
-        severity: { label: 'Medium', color: 'yellow' },
-        status: { label: 'Workaround', color: 'yellow' },
-        agent: 'Sneha Gupta'
-      },
-      {
-        id: 'CALL-2023-0448',
-        dateTime: 'Aug 21, 2023 09:47',
-        duration: '06:23',
-        category: 'Technical Support > Mobile App > Feature Request',
-        severity: { label: 'Low', color: 'blue' },
-        status: { label: 'Unresolved', color: 'red' },
-        agent: 'Vikram Singh'
-      }
-    ];
+  function RecentCalls({ recordings = [] }) {
+    const [category, setCategory] = useState('All Categories');
+    const [formattedCalls, setFormattedCalls] = useState([]);
+    const navigate = useNavigate();
+    
+    useEffect(() => {
+      // Format recordings for display
+      const calls = recordings.map(rec => {
+        // Extract date and time
+        const date = new Date(rec.ingestion_timestamp);
+        const dateTime = `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        
+        // Format duration
+        const minutes = Math.floor(rec.duration_seconds / 60);
+        const seconds = rec.duration_seconds % 60;
+        const duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Determine category (in a real app, this would come from analysis data)
+        let category, severity, status, agent;
+        
+        // For demo purposes, assign mock values based on the recording ID
+        const idSum = rec.id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+        
+        // Set mock values based on the id sum (just for variety)
+        const categories = [
+          'Account Access > Login Issue > Password Reset',
+          'Transactions > Failed Transfer > Technical Error',
+          'Product Info > Investment Plans > Documentation',
+          'Customer Service > Complaint > Service Delay',
+          'Technical Support > Mobile App > Feature Request'
+        ];
+        
+        const severities = [
+          { label: 'Low', color: 'blue' },
+          { label: 'Medium', color: 'yellow' },
+          { label: 'High', color: 'orange' },
+          { label: 'Critical', color: 'red' }
+        ];
+        
+        const statuses = [
+          { label: 'Unresolved', color: 'red' },
+          { label: 'In Progress', color: 'blue' },
+          { label: 'Workaround', color: 'yellow' },
+          { label: 'Resolved', color: 'teal' },
+          { label: 'Escalated', color: 'indigo' }
+        ];
+        
+        const agents = [
+          'Raj Sharma',
+          'Priya Patel',
+          'Amit Kumar',
+          'Sneha Gupta',
+          'Vikram Singh'
+        ];
+        
+        category = categories[idSum % categories.length];
+        severity = severities[idSum % severities.length];
+        status = statuses[idSum % statuses.length];
+        agent = agents[idSum % agents.length];
+        
+        return {
+          id: rec.id,
+          dateTime,
+          duration,
+          category,
+          severity,
+          status,
+          agent,
+          original_file_name: rec.original_file_name
+        };
+      });
+      
+      setFormattedCalls(calls);
+    }, [recordings]);
+    
+    // Filter by category if not "All Categories"
+    const filteredCalls = category === 'All Categories' 
+      ? formattedCalls 
+      : formattedCalls.filter(call => call.category.includes(category));
+    
+    const handleViewClick = (id) => {
+      navigate(`/transcripts?id=${id}`);
+    };
     
     return (
       <Paper withBorder mb="lg">
@@ -75,68 +111,74 @@ import {
               'Technical Support',
               'Product Inquiries'
             ]}
-            defaultValue="All Categories"
+            value={category}
+            onChange={setCategory}
             style={{ width: '200px' }}
           />
         </Group>
         
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Call ID</Table.Th>
-              <Table.Th>Date & Time</Table.Th>
-              <Table.Th>Duration</Table.Th>
-              <Table.Th>Category</Table.Th>
-              <Table.Th>Severity</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th>Agent</Table.Th>
-              <Table.Th>Actions</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {calls.map((call) => (
-              <Table.Tr key={call.id}>
-                <Table.Td>{call.id}</Table.Td>
-                <Table.Td>{call.dateTime}</Table.Td>
-                <Table.Td>{call.duration}</Table.Td>
-                <Table.Td>{call.category}</Table.Td>
-                <Table.Td>
-                  <Badge color={call.severity.color} variant="light">
-                    {call.severity.label}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>
-                  <Badge color={call.status.color} variant="light">
-                    {call.status.label}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>{call.agent}</Table.Td>
-                <Table.Td>
-                  <Button 
-                    variant="subtle" 
-                    size="xs"
-                    leftSection={<IconEye size={14} />}
-                  >
-                    View
-                  </Button>
-                </Table.Td>
+        {filteredCalls.length === 0 ? (
+          <Box p="xl" style={{ textAlign: 'center' }}>
+            <Text c="dimmed">No calls found</Text>
+          </Box>
+        ) : (
+          <Table>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Call ID</Table.Th>
+                <Table.Th>Date & Time</Table.Th>
+                <Table.Th>Duration</Table.Th>
+                <Table.Th>Category</Table.Th>
+                <Table.Th>Severity</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.Th>Agent</Table.Th>
+                <Table.Th>Actions</Table.Th>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Thead>
+            <Table.Tbody>
+              {filteredCalls.map((call) => (
+                <Table.Tr key={call.id}>
+                  <Table.Td>{call.original_file_name}</Table.Td>
+                  <Table.Td>{call.dateTime}</Table.Td>
+                  <Table.Td>{call.duration}</Table.Td>
+                  <Table.Td>{call.category}</Table.Td>
+                  <Table.Td>
+                    <Badge color={call.severity.color} variant="light">
+                      {call.severity.label}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge color={call.status.color} variant="light">
+                      {call.status.label}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>{call.agent}</Table.Td>
+                  <Table.Td>
+                    <Button 
+                      variant="subtle" 
+                      size="xs"
+                      leftSection={<IconEye size={14} />}
+                      onClick={() => handleViewClick(call.id)}
+                    >
+                      View
+                    </Button>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        )}
         
         <Box p="md" style={{ borderTop: '1px solid var(--mantine-color-gray-3)' }}>
           <Group justify="space-between">
             <Text size="sm" c="dimmed">
-              Showing 1 to 5 of 128 entries
+              Showing 1 to {filteredCalls.length} of {filteredCalls.length} entries
             </Text>
             
             <Group>
               <Button variant="subtle" size="sm" disabled>Previous</Button>
               <Button variant="filled" size="sm">1</Button>
-              <Button variant="subtle" size="sm">2</Button>
-              <Button variant="subtle" size="sm">3</Button>
-              <Button variant="subtle" size="sm">Next</Button>
+              <Button variant="subtle" size="sm" disabled>Next</Button>
             </Group>
           </Group>
         </Box>

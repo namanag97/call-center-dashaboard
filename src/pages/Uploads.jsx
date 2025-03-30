@@ -1,59 +1,63 @@
 // src/pages/Uploads.jsx
-import { useState } from 'react';
-import { Box, Title, Text, Group, Button, Paper, Tabs, TextInput, Select, Grid } from '@mantine/core';
-import * as TablerIcons from '@tabler/icons-react';
+import { useState, useEffect } from 'react';
+import { Box, Title, Text, Group, Button, Paper, Tabs, TextInput, Select, Grid, Badge, Progress } from '@mantine/core';
+import { IconSearch, IconFilter, IconCalendar, IconRefresh, IconUpload } from '@tabler/icons-react';
 import UploadModal from '../components/UploadModal';
+import { useRecordings } from '../hooks/useRecordings';
 
 function Uploads() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('recent');
+  const [searchQuery, setSearchQuery] = useState('');
   
-  // Dummy data for uploads
-  const uploadFiles = [
-    {
-      id: 'CALL-2023-0475',
-      title: 'CALL-2023-0475.aac',
-      uploadDate: 'Aug 21, 2023 15:42',
-      fileSize: '12.4 MB',
-      duration: '14:26',
-      queue: 'Standard',
-      progress: 45,
-      status: 'processing'
-    },
-    {
-      id: 'CALL-2023-0473',
-      title: 'CALL-2023-0473.aac',
-      uploadDate: 'Aug 21, 2023 15:30',
-      fileSize: '15.3 MB',
-      duration: '18:45',
-      queue: 'Standard',
-      progress: 32,
-      status: 'processing'
-    },
-    {
-      id: 'CALL-2023-0472',
-      title: 'CALL-2023-0472.aac',
-      uploadDate: 'Aug 21, 2023 15:22',
-      fileSize: '7.8 MB',
-      duration: '08:34',
-      queue: 'Priority',
-      category: 'Account Issues > Login > Password Reset',
-      severity: 'Medium',
-      progress: 100,
-      status: 'completed'
-    },
-    {
-      id: 'CALL-2023-0474',
-      title: 'CALL-2023-0474.aac',
-      uploadDate: 'Aug 21, 2023 15:38',
-      fileSize: '8.7 MB',
-      duration: '09:12',
-      queue: 'Priority',
-      progress: 78,
-      status: 'processing'
-    }
-  ];
-
+  const { recordings, loading, error, fetchRecordings } = useRecordings();
+  
+  // Filter recordings based on search and status
+  const filteredRecordings = recordings.filter(rec => {
+    const matchesSearch = searchQuery 
+      ? rec.original_file_name.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
+    
+    const matchesTab = activeTab === 'recent' ? true :
+                      activeTab === 'processing' ? 
+                        ['pending_validation', 'pending_transcription', 'transcribing', 'pending_analysis', 'analyzing'].includes(rec.processing_status) :
+                      activeTab === 'completed' ? 
+                        ['transcription_completed', 'analysis_completed'].includes(rec.processing_status) :
+                      activeTab === 'failed' ? 
+                        ['transcription_failed', 'analysis_failed'].includes(rec.processing_status) :
+                      true;
+    
+    return matchesSearch && matchesTab;
+  });
+  
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+  
+  const handleRefresh = () => {
+    fetchRecordings();
+  };
+  
+  // Format date for display
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+  
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+  
+  // Format duration
+  const formatDuration = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+  
   return (
     <Box p="md">
       {/* Page Header */}
@@ -67,12 +71,13 @@ function Uploads() {
           <Group>
             <Button 
               variant="outline" 
-              leftSection={<TablerIcons.IconSettings size={16} />}
+              leftSection={<IconRefresh size={16} />}
+              onClick={handleRefresh}
             >
-              Upload Settings
+              Refresh
             </Button>
             <Button 
-              leftSection={<TablerIcons.IconUpload size={16} />}
+              leftSection={<IconUpload size={16} />}
               onClick={() => setUploadModalOpen(true)}
             >
               Upload Calls
@@ -81,95 +86,28 @@ function Uploads() {
         </Group>
       </Box>
       
-      {/* Quick Upload Area */}
-      <Paper withBorder mb="lg">
-        <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
-          <Title order={4}>Quick Upload</Title>
-        </Box>
-        
-        <Box p="md">
-          {/* Upload Drop Area */}
-          <Box 
-            style={{
-              border: '2px dashed var(--mantine-color-gray-4)',
-              borderRadius: 'var(--mantine-radius-md)',
-              padding: '2rem',
-              textAlign: 'center',
-              cursor: 'pointer',
-              marginBottom: '1rem'
-            }}
-          >
-            <Box style={{ color: 'var(--mantine-color-gray-5)', marginBottom: '1rem' }}>
-              {TablerIcons.IconUploadCloud && <TablerIcons.IconUploadCloud size={48} />}
-            </Box>
-            
-            <Text fw={500} mb="xs">
-              <strong>Click to upload</strong> or drag and drop call recordings
-            </Text>
-            
-            <Text size="xs" c="dimmed">
-              Supports AAC audio files (Max: 50MB per file)
-            </Text>
-          </Box>
-          
-          {/* Upload Options */}
-          <Grid>
-            <Grid.Col span={{ base: 12, sm: 4 }}>
-              <Select
-                label="Processing Queue"
-                data={[
-                  'Standard Queue (Processing time: ~30 mins)',
-                  'Priority Queue (Processing time: ~10 mins)',
-                  'Batch Processing (Schedule for off-peak hours)'
-                ]}
-                defaultValue="Standard Queue (Processing time: ~30 mins)"
-              />
-            </Grid.Col>
-            
-            <Grid.Col span={{ base: 12, sm: 4 }}>
-              <Select
-                label="Categories"
-                data={[
-                  'All Categories',
-                  'Account Issues',
-                  'Transaction Problems',
-                  'Technical Support',
-                  'Product Inquiries'
-                ]}
-                defaultValue="All Categories"
-              />
-            </Grid.Col>
-            
-            <Grid.Col span={{ base: 12, sm: 4 }}>
-              <TextInput
-                label="Tags"
-                placeholder="E.g., product-inquiry, escalation, hindi"
-              />
-            </Grid.Col>
-          </Grid>
-        </Box>
-      </Paper>
-      
       {/* Search and Filter */}
       <Paper p="md" mb="lg" withBorder>
         <Group justify="space-between">
           <TextInput
-            placeholder="Search by call ID, date, or status..."
-            leftSection={<TablerIcons.IconSearch size={16} />}
+            placeholder="Search by file name, date, or status..."
+            leftSection={<IconSearch size={16} />}
             style={{ maxWidth: '400px', flex: 1 }}
+            value={searchQuery}
+            onChange={handleSearchChange}
           />
           
           <Group>
             <Button 
               variant="outline" 
-              leftSection={<TablerIcons.IconFilter size={16} />}
+              leftSection={<IconFilter size={16} />}
             >
               Filter
             </Button>
             
             <Button 
               variant="outline" 
-              leftSection={<TablerIcons.IconCalendar size={16} />}
+              leftSection={<IconCalendar size={16} />}
             >
               Last 7 days
             </Button>
@@ -188,176 +126,124 @@ function Uploads() {
       </Tabs>
       
       {/* Upload Cards */}
-      <Grid>
-        {uploadFiles.map((file) => (
-          <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} key={file.id}>
-            <Paper withBorder style={{ height: '100%' }}>
-              {/* Card Header */}
-              <Group p="sm" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)', background: 'var(--mantine-color-gray-0)' }}>
-                <Box 
-                  style={{ 
-                    width: 32, 
-                    height: 32, 
-                    borderRadius: 'var(--mantine-radius-sm)',
-                    background: file.status === 'completed' 
-                      ? 'rgba(16, 185, 129, 0.1)' 
-                      : 'var(--mantine-color-primary-light)',
-                    color: file.status === 'completed' 
-                      ? 'var(--mantine-color-success-filled)' 
-                      : 'var(--mantine-color-primary-filled)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {file.status === 'completed' 
-                    ? (TablerIcons.IconCheck && <TablerIcons.IconCheck size={16} />)
-                    : (TablerIcons.IconMicrophone && <TablerIcons.IconMicrophone size={16} />)
-                  }
-                </Box>
-                
-                <Text fw={500} size="sm" style={{ flex: 1 }}>{file.title}</Text>
-                
-                <Button variant="subtle" compact p={0} style={{ color: 'var(--mantine-color-gray-5)' }}>
-                  {TablerIcons.IconDotsVertical && <TablerIcons.IconDotsVertical size={16} />}
-                </Button>
-              </Group>
-              
-              {/* Card Content */}
-              <Box p="md">
-                <Grid gutter="xs">
-                  <Grid.Col span={6}>
-                    <Text size="xs" c="dimmed">Upload Date</Text>
-                    <Text size="sm">{file.uploadDate}</Text>
-                  </Grid.Col>
-                  
-                  <Grid.Col span={6}>
-                    <Text size="xs" c="dimmed">File Size</Text>
-                    <Text size="sm">{file.fileSize}</Text>
-                  </Grid.Col>
-                  
-                  <Grid.Col span={6}>
-                    <Text size="xs" c="dimmed">Duration</Text>
-                    <Text size="sm">{file.duration}</Text>
-                  </Grid.Col>
-                  
-                  <Grid.Col span={6}>
-                    <Text size="xs" c="dimmed">Queue</Text>
-                    <Text size="sm">{file.queue}</Text>
-                  </Grid.Col>
-                </Grid>
-                
-                {file.status === 'processing' && (
-                  <Box mt="md">
-                    <Group position="apart" mb="xs">
-                      <Text size="xs">Transcription Progress</Text>
-                      <Text size="xs">{file.progress}%</Text>
-                    </Group>
-                    <Box style={{ 
-                      width: '100%', 
-                      height: 6, 
-                      background: 'var(--mantine-color-gray-2)',
-                      borderRadius: 999,
-                      overflow: 'hidden'
-                    }}>
-                      <Box style={{ 
-                        width: `${file.progress}%`, 
-                        height: '100%', 
-                        background: 'var(--mantine-color-primary-filled)',
-                        borderRadius: 999
-                      }} />
+      {loading ? (
+        <Text align="center" my="xl">Loading uploads...</Text>
+      ) : error ? (
+        <Text align="center" my="xl" color="red">{error}</Text>
+      ) : filteredRecordings.length === 0 ? (
+        <Text align="center" my="xl">No recordings found</Text>
+      ) : (
+        <Grid>
+          {filteredRecordings.map((recording) => {
+            // Determine status and progress
+            let status = recording.processing_status;
+            let progress = 0;
+            
+            switch (status) {
+              case 'pending_validation':
+                progress = 10;
+                break;
+              case 'pending_transcription':
+                progress = 20;
+                break;
+              case 'transcribing':
+                progress = 50;
+                break;
+              case 'transcription_completed':
+              case 'pending_analysis':
+                progress = 75;
+                break;
+              case 'analyzing':
+                progress = 90;
+                break;
+              case 'analysis_completed':
+                progress = 100;
+                break;
+              default:
+                progress = 0;
+            }
+            
+            // Determine if processing or completed
+            const isProcessing = progress < 100 && !status.includes('failed');
+            const isCompleted = progress === 100;
+            
+            return (
+              <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} key={recording.id}>
+                <Paper withBorder style={{ height: '100%' }}>
+                  {/* Card Header */}
+                  <Group p="sm" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)', background: 'var(--mantine-color-gray-0)' }}>
+                    <Box style={{ flex: 1 }}>
+                      <Text fw={500} size="sm">{recording.original_file_name}</Text>
+                      <Text size="xs" c="dimmed">{recording.id}</Text>
                     </Box>
-                  </Box>
-                )}
-                
-                {file.status === 'completed' && file.category && (
-                  <Box mt="md">
-                    <Text size="xs" c="dimmed" mb="xs">Category</Text>
-                    <Text size="sm" fw={500}>{file.category}</Text>
-                    
-                    <Group mt="sm">
-                      <Box>
-                        <Text size="xs" c="dimmed">Severity</Text>
-                        <Box 
-                          style={{ 
-                            background: 'rgba(245, 158, 11, 0.1)', 
-                            color: 'var(--mantine-color-yellow-7)',
-                            borderRadius: 999,
-                            padding: '2px 8px',
-                            display: 'inline-block',
-                            fontSize: '0.75rem',
-                            fontWeight: 500,
-                            marginTop: 4
-                          }}
-                        >
-                          {file.severity}
-                        </Box>
-                      </Box>
+                  </Group>
+                  
+                  {/* Card Content */}
+                  <Box p="md">
+                    <Grid gutter="xs">
+                      <Grid.Col span={6}>
+                        <Text size="xs" c="dimmed">Upload Date</Text>
+                        <Text size="sm">{formatDate(recording.ingestion_timestamp)}</Text>
+                      </Grid.Col>
                       
-                      <Box>
+                      <Grid.Col span={6}>
+                        <Text size="xs" c="dimmed">File Size</Text>
+                        <Text size="sm">{formatFileSize(recording.file_size_bytes)}</Text>
+                      </Grid.Col>
+                      
+                      <Grid.Col span={6}>
+                        <Text size="xs" c="dimmed">Duration</Text>
+                        <Text size="sm">{formatDuration(recording.duration_seconds)}</Text>
+                      </Grid.Col>
+                      
+                      <Grid.Col span={6}>
                         <Text size="xs" c="dimmed">Status</Text>
-                        <Box 
-                          style={{ 
-                            background: 'rgba(16, 185, 129, 0.1)', 
-                            color: 'var(--mantine-color-teal-7)',
-                            borderRadius: 999,
-                            padding: '2px 8px',
-                            display: 'inline-block',
-                            fontSize: '0.75rem',
-                            fontWeight: 500,
-                            marginTop: 4
-                          }}
+                        <Badge 
+                          color={
+                            status.includes('failed') ? 'red' : 
+                            isCompleted ? 'teal' : 
+                            'blue'
+                          } 
+                          variant="light"
                         >
-                          Resolved
-                        </Box>
+                          {status.replace(/_/g, ' ')}
+                        </Badge>
+                      </Grid.Col>
+                    </Grid>
+                    
+                    {isProcessing && (
+                      <Box mt="md">
+                        <Group position="apart" mb="xs">
+                          <Text size="xs">Processing Progress</Text>
+                          <Text size="xs">{progress}%</Text>
+                        </Group>
+                        <Progress value={progress} />
                       </Box>
-                    </Group>
+                    )}
                   </Box>
-                )}
-              </Box>
-              
-              {/* Card Footer */}
-              <Group 
-                p="sm" 
-                position="apart" 
-                style={{ borderTop: '1px solid var(--mantine-color-gray-3)' }}
-              >
-                <Group spacing={4}>
-                  {file.status === 'processing' ? (
-                    <>
-                      {TablerIcons.IconLoader && <TablerIcons.IconLoader size={12} />}
-                      <Text size="xs">Processing</Text>
-                    </>
-                  ) : (
-                    <>
-                      {TablerIcons.IconCircleCheck && <TablerIcons.IconCircleCheck size={12} color="var(--mantine-color-teal-7)" />}
-                      <Text size="xs" c="teal">Completed</Text>
-                    </>
-                  )}
-                </Group>
-                
-                <Group spacing={8}>
-                  {file.status === 'processing' && (
-                    <Button variant="subtle" compact p={0} style={{ color: 'var(--mantine-color-gray-6)' }}>
-                      {TablerIcons.IconPause && <TablerIcons.IconPause size={14} />}
-                    </Button>
-                  )}
                   
-                  {file.status === 'completed' && (
-                    <Button variant="subtle" compact p={0} style={{ color: 'var(--mantine-color-gray-6)' }}>
-                      {TablerIcons.IconFileText && <TablerIcons.IconFileText size={14} />}
-                    </Button>
-                  )}
-                  
-                  <Button variant="subtle" compact p={0} style={{ color: 'var(--mantine-color-gray-6)' }}>
-                    {TablerIcons.IconInfo && <TablerIcons.IconInfo size={14} />}
-                  </Button>
-                </Group>
-              </Group>
-            </Paper>
-          </Grid.Col>
-        ))}
-      </Grid>
+                  {/* Card Footer */}
+                  <Group 
+                    p="sm" 
+                    position="apart" 
+                    style={{ borderTop: '1px solid var(--mantine-color-gray-3)' }}
+                  >
+                    <Text size="xs" c={isCompleted ? 'teal' : 'dimmed'}>
+                      {isCompleted ? 'Completed' : isProcessing ? 'Processing' : 'Failed'}
+                    </Text>
+                    
+                    <Group spacing={8}>
+                      <Button variant="subtle" size="xs">
+                        Details
+                      </Button>
+                    </Group>
+                  </Group>
+                </Paper>
+              </Grid.Col>
+            );
+          })}
+        </Grid>
+      )}
       
       {/* Upload Modal */}
       <UploadModal

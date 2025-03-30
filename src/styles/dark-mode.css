@@ -1,0 +1,147 @@
+/* src/styles/dark-mode.css - replace with this improved version */
+
+/* Base variables for light mode */
+:root {
+    --color-background: #f8f9fa;
+    --color-paper: #ffffff;
+    --color-paper-secondary: #f1f3f5;
+    --color-text-primary: #212529;
+    --color-text-secondary: #495057;
+    --color-border: #dee2e6;
+    --color-shadow: rgba(0, 0, 0, 0.1);
+    --color-primary: #4263eb;
+    --color-primary-light: rgba(66, 99, 235, 0.1);
+    
+    /* Add a smooth transition for all color changes */
+    --transition-theme: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  
+  /* Dark mode variables */
+  .dark-mode {
+    --color-background: #1a1b26;
+    --color-paper: #24283b;
+    --color-paper-secondary: #1f2335;
+    --color-text-primary: #c0caf5;
+    --color-text-secondary: #a9b1d6;
+    --color-border: #414868;
+    --color-shadow: rgba(0, 0, 0, 0.5);
+    --color-primary: #7aa2f7;
+    --color-primary-light: rgba(122, 162, 247, 0.2);
+    
+    /* System colors */
+    color-scheme: dark;
+  }
+  
+  /* Apply transitions to all elements */
+  * {
+    transition: var(--transition-theme);
+  }
+  
+  /* Body styles */
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+  }
+  
+  /* Paper styles */
+  .mantine-Paper-root {
+    background-color: var(--color-paper);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+  }
+  
+  /* Background specific styles */
+  .dark-mode [style*="background"] {
+    background-color: var(--color-paper) !important;
+  }
+  
+  .dark-mode [style*="background: var(--mantine-color-gray-0)"] {
+    background-color: var(--color-paper-secondary) !important;
+  }
+  
+  /* Text styles */
+  .mantine-Text-root {
+    color: var(--color-text-primary);
+  }
+  
+  .mantine-Text-dimmed {
+    color: var(--color-text-secondary) !important;
+  }
+  
+  /* Input styles */
+  .dark-mode .mantine-Input-input,
+  .dark-mode .mantine-InputWrapper-root input,
+  .dark-mode .mantine-Select-input,
+  .dark-mode .mantine-TextInput-input {
+    background-color: var(--color-paper-secondary);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+  }
+  
+  /* Specific elements */
+  .dark-mode .mantine-Divider-root {
+    border-color: var(--color-border);
+  }
+  
+  .dark-mode .mantine-NavLink-root {
+    color: var(--color-text-primary);
+  }
+  
+  .dark-mode .mantine-NavLink-root:hover {
+    background-color: var(--color-paper-secondary);
+  }
+  
+  .dark-mode .mantine-NavLink-root[data-active] {
+    background-color: var(--color-primary-light);
+  }
+  
+  /* Recordings list specific fix */
+  .dark-mode .mantine-Paper-root[style*="background: var(--mantine-color-primary-light)"] {
+    background-color: var(--color-primary-light) !important;
+  }
+  
+  /* Table styles */
+  .dark-mode .mantine-Table-root,
+  .dark-mode .mantine-Table-root tbody tr,
+  .dark-mode .mantine-Table-root thead tr th {
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+  }
+  
+  .dark-mode .mantine-Table-root tbody tr:hover {
+    background-color: var(--color-paper-secondary);
+  }
+  
+  /* Modal and dropdown styles */
+  .dark-mode .mantine-Modal-content,
+  .dark-mode .mantine-Select-dropdown,
+  .dark-mode .mantine-Menu-dropdown {
+    background-color: var(--color-paper);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+  }
+  
+  /* Selection and active elements */
+  .dark-mode .mantine-Select-item[data-selected],
+  .dark-mode .mantine-MultiSelect-item[data-selected] {
+    background-color: var(--color-primary-light);
+  }
+  
+  /* Badge colors */
+  .dark-mode .mantine-Badge-root {
+    background-color: var(--color-paper-secondary);
+  }
+  
+  /* Audio player specific styles */
+  .dark-mode .audio-timeline {
+    background-color: var(--color-border);
+  }
+  
+  .dark-mode .audio-progress {
+    background-color: var(--color-primary);
+  }
+  
+  /* Sentiment indicator */
+  .dark-mode .sentiment-gradient {
+    background: linear-gradient(to right, #f87171, #d1d5db, #34d399);
+  }

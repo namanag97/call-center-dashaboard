@@ -8,9 +8,12 @@ import {
   NavLink, 
   Box, 
   Flex, 
-  Avatar 
+  Avatar,
+  Switch,
+  Group
 } from '@mantine/core';
 import * as TablerIcons from '@tabler/icons-react';
+import { useTheme } from '../context/ThemeContext';
 
 // Helper function to get the correct icon
 function getIcon(iconName, fallbackIconName = null) {
@@ -22,9 +25,10 @@ function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
+  const { darkMode, toggleTheme } = useTheme();
   
   return (
-    <Stack h="100%" style={{ borderRight: '1px solid var(--mantine-color-gray-3)' }}>
+    <Stack h="100%" style={{ borderRight: '1px solid var(--color-border)' }}>
       {/* Logo */}
       <Flex p="lg" pb="xs" align="center" gap="sm">
         {getIcon('IconMicrophone') || <div style={{ width: 32, height: 32, background: '#e9ecef', borderRadius: '50%' }}></div>}
@@ -110,6 +114,24 @@ function Sidebar() {
       
       {/* User Profile */}
       <Box style={{ marginTop: 'auto' }} p="md" pt="xl">
+        <Divider mb="md" />
+        
+        {/* Dark Mode Toggle */}
+        <Group mb="md" position="apart">
+          <Group>
+            {darkMode ? 
+              <TablerIcons.IconMoon size={18} /> : 
+              <TablerIcons.IconSun size={18} />
+            }
+            <Text size="sm">Dark Mode</Text>
+          </Group>
+          <Switch 
+            checked={darkMode} 
+            onChange={toggleTheme} 
+            size="md" 
+          />
+        </Group>
+        
         <Divider mb="md" />
         
         <Flex align="center">

@@ -1,163 +1,141 @@
-// src/pages/Transcripts.jsx
-import { useState } from 'react';
-import { Box, Title, Text, Group, Button, Paper, Grid, TextInput, Tabs, Badge, Divider, Avatar } from '@mantine/core';
-import * as TablerIcons from '@tabler/icons-react';
+// src/pages/Transcripts.jsx (full implementation with API-driven approach)
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
+import { 
+  Box, 
+  Title, 
+  Text, 
+  Group, 
+  Button, 
+  Paper, 
+  Grid, 
+  Loader, 
+  Alert 
+} from '@mantine/core';
+import { IconAlertCircle, IconEdit, IconDownload } from '@tabler/icons-react';
 
-// RecordingItem component for the left panel
-function RecordingItem({ recording, isActive, onClick }) {
-  return (
-    <Paper 
-      withBorder 
-      p="sm" 
-      mb="xs" 
-      style={{ 
-        cursor: 'pointer',
-        background: isActive ? 'var(--mantine-color-primary-light)' : 'white'
-      }}
-      onClick={() => onClick(recording.id)}
-    >
-      <Text fw={500} size="sm">{recording.id}</Text>
-      <Text size="xs" c="dimmed" mb="xs">{recording.category}</Text>
-      <Group position="apart" mb="xs">
-        <Text size="xs" c="dimmed">{recording.date}</Text>
-        <Text size="xs" c="dimmed">{recording.duration}</Text>
-      </Group>
-      <Group position="apart">
-        <Badge 
-          color={
-            recording.status === 'Resolved' ? 'teal' : 
-            recording.status === 'Escalated' ? 'blue' :
-            recording.status === 'Workaround' ? 'yellow' : 'red'
-          }
-          variant="light"
-          size="sm"
-        >
-          {recording.status}
-        </Badge>
-        <Text size="xs" c="dimmed">{recording.agent}</Text>
-      </Group>
-    </Paper>
-  );
-}
+import { useRecordings } from '../hooks/useRecordings';
+import { useRecordingDetails } from '../hooks/useRecordingDetails';
 
-// Message component for the chat panel
-function Message({ sender, content, time, isAgent }) {
-  return (
-    <Group align="flex-start" position={isAgent ? 'left' : 'right'} noWrap mt="md">
-      {isAgent && (
-        <Avatar color="indigo" radius="xl">A</Avatar>
-      )}
-      
-      <Box 
-        style={{
-          background: isAgent ? 'white' : 'var(--mantine-color-primary-light)',
-          padding: '10px 14px',
-          borderRadius: 12,
-          maxWidth: '70%',
-          border: isAgent ? '1px solid var(--mantine-color-gray-3)' : 'none',
-          position: 'relative'
-        }}
-      >
-        <Text 
-          size="xs" 
-          fw={500} 
-          mb="xs" 
-          c={isAgent ? 'indigo' : 'gray.7'}
-        >
-          {isAgent ? 'Agent (Priya)' : 'Customer'}
-        </Text>
-        
-        <Text size="sm">{content}</Text>
-        <Text size="xs" c="dimmed" align="right" mt="xs">{time}</Text>
-      </Box>
-      
-      {!isAgent && (
-        <Avatar color="gray" radius="xl">C</Avatar>
-      )}
-    </Group>
-  );
-}
+import RecordingsFilter from '../components/RecordingsFilter';
+import Pagination from '../components/Pagination';
+import RecordingItem from '../components/RecordingItem';
+import MessageList from '../components/MessageList';
+import AudioPlayer from '../components/AudioPlayer';
+import AnalysisPanel from '../components/AnalysisPanel';
 
 function Transcripts() {
-  const [activeRecording, setActiveRecording] = useState('CALL-2023-0451');
-  const [activeTab, setActiveTab] = useState('transcript');
+  // Local state
+  const [activeRecordingId, setActiveRecordingId] = useState(null);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
   
-  // Dummy data for recordings
-  const recordings = [
-    { 
-      id: 'CALL-2023-0451', 
-      date: 'Aug 21, 2023', 
-      duration: '15:18',
-      category: 'Transactions > Failed Transfer',
-      status: 'Escalated',
-      agent: 'Priya Patel'
-    },
-    { 
-      id: 'CALL-2023-0450', 
-      date: 'Aug 21, 2023', 
-      duration: '04:37',
-      category: 'Product Info > Investment Plans',
-      status: 'Resolved',
-      agent: 'Amit Kumar'
-    },
-    { 
-      id: 'CALL-2023-0449', 
-      date: 'Aug 21, 2023', 
-      duration: '12:45',
-      category: 'Customer Service > Complaint',
-      status: 'Workaround',
-      agent: 'Sneha Gupta'
-    },
-    { 
-      id: 'CALL-2023-0448', 
-      date: 'Aug 21, 2023', 
-      duration: '06:23',
-      category: 'Technical Support > Mobile App',
-      status: 'Unresolved',
-      agent: 'Vikram Singh'
+  // Router
+  const location = useLocation();
+  
+  // Setup API parameters
+  const initialParams = {
+    pageSize: 20,
+    sortField: 'ingestion_timestamp',
+    sortDirection: 'desc',
+    filters: {}
+  };
+  
+  // Use API-driven hooks
+  const { 
+    recordings, 
+    meta, 
+    loading: recordingsLoading, 
+    error: recordingsError, 
+    params,
+    setSearch, 
+    setFilter, 
+    setPage,
+    setPageSize, 
+    setSort,
+    resetFilters
+  } = useRecordings(initialParams);
+  
+  const { 
+    recording, 
+    transcript, 
+    analysis, 
+    loading: detailsLoading, 
+    error: detailsError,
+    refresh: refreshDetails 
+  } = useRecordingDetails(activeRecordingId);
+  
+  // Handle URL parameter
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const id = queryParams.get('id');
+    if (id) {
+      setActiveRecordingId(id);
+      setInitialLoadComplete(true);
     }
-  ];
-
-  // Dummy conversation data
-  const messages = [
-    { 
-      id: 1,
-      sender: 'agent',
-      content: 'Thank you for calling ABC Financial Services. My name is Priya. How may I help you today?',
-      time: '00:07'
-    },
-    { 
-      id: 2,
-      sender: 'customer',
-      content: 'Hi, I\'ve been trying to transfer money to my son\'s account but the transaction keeps failing. I\'ve tried three times already and each time I get an error message.',
-      time: '00:22'
-    },
-    { 
-      id: 3,
-      sender: 'agent',
-      content: 'I\'m sorry to hear that you\'re experiencing issues with your transfer. I\'d be happy to help you resolve this. Could you please verify your account by providing your customer ID?',
-      time: '00:38'
-    },
-    { 
-      id: 4,
-      sender: 'customer',
-      content: 'Yes, it\'s CUST00584.',
-      time: '00:45'
-    },
-    { 
-      id: 5,
-      sender: 'agent',
-      content: 'Thank you for verifying. Now, could you please tell me when you tried to make this transfer and what error message you received?',
-      time: '00:52'
-    },
-    { 
-      id: 6,
-      sender: 'customer',
-      content: 'I tried about 20 minutes ago. I\'m getting an error code E-45632. This is really frustrating because my son needs this money for his college fees and the deadline is tomorrow. I can\'t understand why this keeps happening.',
-      time: '01:15'
+  }, [location.search]);
+  
+  // Set initial active recording after data loads
+  useEffect(() => {
+    if (!initialLoadComplete && !recordingsLoading && recordings.length > 0) {
+      setActiveRecordingId(recordings[0].id);
+      setInitialLoadComplete(true);
     }
-  ];
-
+  }, [recordings, recordingsLoading, initialLoadComplete]);
+  
+  // Format messages from transcript
+  const messages = useMemo(() => {
+    return transcript?.messages?.map((msg, index) => ({
+      id: index,
+      sender: msg.speaker,
+      content: msg.content,
+      time: formatTime(msg.start_time),
+      startTime: msg.start_time
+    })) || [];
+  }, [transcript]);
+  
+  // Handlers
+  const handleSearchChange = useCallback((e) => {
+    setSearch(e.target.value);
+  }, [setSearch]);
+  
+  const handleDateRangeChange = useCallback((range) => {
+    setFilter('dateFrom', range?.from || null);
+    setFilter('dateTo', range?.to || null);
+  }, [setFilter]);
+  
+  const handleStatusChange = useCallback((status) => {
+    setFilter('status', status || null);
+  }, [setFilter]);
+  
+  const handlePageChange = useCallback((newPage) => {
+    setPage(newPage);
+  }, [setPage]);
+  
+  const handlePageSizeChange = useCallback((newSize) => {
+    setPageSize(newSize);
+  }, [setPageSize]);
+  
+  const handleRecordingSelect = useCallback((id) => {
+    setActiveRecordingId(id);
+    // Update URL with selected ID for bookmarking/sharing
+    const url = new URL(window.location);
+    url.searchParams.set('id', id);
+    window.history.pushState({}, '', url);
+  }, []);
+  
+  const handleMessageClick = useCallback((time) => {
+    setCurrentTime(time);
+  }, []);
+  
+  // Helper function to format time
+  function formatTime(seconds) {
+    if (!seconds && seconds !== 0) return "0:00";
+    const minutes = Math.floor(seconds / 60);
+    const remainingSecs = Math.round(seconds % 60);
+    return `${minutes}:${remainingSecs.toString().padStart(2, '0')}`;
+  }
+  
   return (
     <Box p="md" style={{ height: 'calc(100vh - 32px)' }}>
       {/* Page Header */}
@@ -167,40 +145,70 @@ function Transcripts() {
             <Title order={2} mb="xs">Call Transcripts</Title>
             <Text c="dimmed" size="sm">View and analyze customer call recordings</Text>
           </Box>
-          
-          <Group>
-            <TextInput
-              placeholder="Search transcripts..."
-              leftSection={<TablerIcons.IconSearch size={16} />}
-              style={{ width: '300px' }}
-            />
-            
-            <Button 
-              variant="outline" 
-              leftSection={<TablerIcons.IconFilter size={16} />}
-            >
-              Filter
-            </Button>
-          </Group>
         </Group>
       </Box>
       
+      {/* Filters */}
+      <RecordingsFilter
+        searchValue={params.search}
+        onSearchChange={handleSearchChange}
+        dateRange={{ 
+          from: params.filters.dateFrom ? new Date(params.filters.dateFrom) : null, 
+          to: params.filters.dateTo ? new Date(params.filters.dateTo) : null 
+        }}
+        // src/pages/Transcripts.jsx (continued)
+        onDateRangeChange={handleDateRangeChange}
+        status={params.filters.status || ''}
+        onStatusChange={handleStatusChange}
+        onResetFilters={resetFilters}
+        loading={recordingsLoading}
+      />
+      
       {/* Main Content - 3 panel layout */}
-      <Grid style={{ height: 'calc(100vh - 140px)' }}>
+      <Grid style={{ height: 'calc(100vh - 240px)' }}>
         {/* Left panel - Recordings list */}
         <Grid.Col span={{ base: 12, md: 3 }} style={{ height: '100%' }}>
-          <Paper withBorder p="md" style={{ height: '100%', overflow: 'auto' }}>
+          <Paper withBorder p="md" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Title order={5} mb="md">Call Recordings</Title>
-            <Box>
-              {recordings.map((recording) => (
-                <RecordingItem
-                  key={recording.id}
-                  recording={recording}
-                  isActive={activeRecording === recording.id}
-                  onClick={() => setActiveRecording(recording.id)}
-                />
-              ))}
-            </Box>
+            
+            {recordingsLoading ? (
+              <Group position="center" my="xl">
+                <Loader size="sm" />
+                <Text size="sm">Loading recordings...</Text>
+              </Group>
+            ) : recordingsError ? (
+              <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" my="md">
+                {recordingsError}
+              </Alert>
+            ) : recordings.length === 0 ? (
+              <Text c="dimmed" align="center" my="xl">No recordings found</Text>
+            ) : (
+              <>
+                <Box style={{ flexGrow: 1, overflow: 'auto' }}>
+                  {recordings.map((recording) => (
+                    <RecordingItem
+                      key={recording.id}
+                      recording={recording}
+                      isActive={activeRecordingId === recording.id}
+                      onClick={handleRecordingSelect}
+                    />
+                  ))}
+                </Box>
+                
+                {/* Pagination at bottom of recordings list */}
+                <Box mt="sm">
+                  <Pagination
+                    currentPage={meta.page}
+                    totalPages={meta.totalPages}
+                    totalItems={meta.total}
+                    pageSize={meta.pageSize}
+                    onPageChange={handlePageChange}
+                    onPageSizeChange={handlePageSizeChange}
+                    loading={recordingsLoading}
+                  />
+                </Box>
+              </>
+            )}
           </Paper>
         </Grid.Col>
         
@@ -208,303 +216,91 @@ function Transcripts() {
         <Grid.Col span={{ base: 12, md: 6 }} style={{ height: '100%' }}>
           <Paper withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             {/* Chat header */}
-            <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+            <Box p="md" style={{ borderBottom: '1px solid var(--color-border, var(--mantine-color-gray-3))' }}>
               <Group position="apart">
                 <Box>
-                  <Text fw={500}>Call Transcript: {activeRecording}</Text>
-                  <Text size="xs" c="dimmed">
-                    {recordings.find(r => r.id === activeRecording)?.category} | Aug 21, 2023
+                  <Text fw={500}>
+                    {recording ? `Call Transcript: ${recording.original_file_name}` : 'Select a recording'}
                   </Text>
+                  {recording && (
+                    <Text size="xs" c="dimmed">
+                      {analysis?.category || 'Not categorized'} | {new Date(recording.ingestion_timestamp).toLocaleDateString()}
+                    </Text>
+                  )}
                 </Box>
                 
-                <Group>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    leftSection={<TablerIcons.IconEdit size={14} />}
-                  >
-                    Edit
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    leftSection={<TablerIcons.IconDownload size={14} />}
-                  >
-                    Export
-                  </Button>
-                </Group>
-              </Group>
-            </Box>
-            
-            {/* Audio player */}
-            <Box p="md" style={{ background: 'var(--mantine-color-gray-0)', borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
-              <Group>
-                <Button variant="default" style={{ width: 36, height: 36, padding: 0, borderRadius: '50%' }}>
-                  {TablerIcons.IconPlayerPlay && <TablerIcons.IconPlayerPlay size={16} />}
-                </Button>
-                
-                <Box style={{ flex: 1 }}>
-                  <Box style={{ 
-                    height: 4, 
-                    background: 'var(--mantine-color-gray-3)', 
-                    borderRadius: 9999,
-                    position: 'relative' 
-                  }}>
-                    <Box style={{ 
-                      width: '35%', 
-                      height: '100%', 
-                      background: 'var(--mantine-color-primary-filled)',
-                      borderRadius: 9999 
-                    }} />
-                    <Box style={{ 
-                      width: 12, 
-                      height: 12, 
-                      background: 'var(--mantine-color-primary-filled)',
-                      border: '2px solid white',
-                      borderRadius: '50%',
-                      position: 'absolute',
-                      top: '50%',
-                      left: '35%',
-                      transform: 'translate(-50%, -50%)'
-                    }} />
-                  </Box>
-                  
-                  <Group position="apart" mt={4}>
-                    <Text size="xs" c="dimmed">05:21 / 15:18</Text>
-                    <Group spacing={8}>
-                      {TablerIcons.IconVolume && <TablerIcons.IconVolume size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />}
-                      {TablerIcons.IconPlayerTrackNext && <TablerIcons.IconPlayerTrackNext size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />}
-                    </Group>
+                {recording && (
+                  <Group>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      leftSection={<IconEdit size={14} />}
+                      disabled={detailsLoading}
+                    >
+                      Edit
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      leftSection={<IconDownload size={14} />}
+                      disabled={detailsLoading}
+                    >
+                      Export
+                    </Button>
                   </Group>
-                </Box>
+                )}
               </Group>
             </Box>
             
-            {/* Chat messages */}
-            <Box p="md" style={{ flex: 1, overflow: 'auto' }}>
-              {messages.map((message) => (
-                <Message
-                  key={message.id}
-                  sender={message.sender}
-                  content={message.content}
-                  time={message.time}
-                  isAgent={message.sender === 'agent'}
-                />
-              ))}
-              
-              {/* Load more messages */}
-              <Box mt="xl" style={{ textAlign: 'center' }}>
-                <Text size="xs" c="dimmed">Showing 6 of 24 messages</Text>
-                <Button 
-                  variant="subtle" 
-                  size="xs" 
-                  mt="sm"
-                >
-                  Load More
-                </Button>
+            {detailsLoading ? (
+              <Group position="center" style={{ flex: 1 }}>
+                <Loader />
+                <Text>Loading transcript data...</Text>
+              </Group>
+            ) : detailsError ? (
+              <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" m="md">
+                {detailsError}
+              </Alert>
+            ) : !recording ? (
+              <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                <Text c="dimmed">Select a recording to view its transcript</Text>
               </Box>
-            </Box>
-            
-            {/* Chat footer */}
-            <Box p="md" style={{ borderTop: '1px solid var(--mantine-color-gray-3)' }}>
-              <Group position="apart" mb="xs">
-                <Text size="sm" fw={500}>
-                  Transcript Confidence: <Text span c="teal" fw={500}>High (96%)</Text>
-                </Text>
+            ) : (
+              <>
+                {/* Audio player */}
+                <AudioPlayer 
+                  recording={recording} 
+                  currentTime={currentTime} 
+                  setCurrentTime={setCurrentTime} 
+                />
                 
-                <Group spacing={8}>
-                  <Button variant="subtle" size="xs" p={6} style={{ borderRadius: '50%' }}>
-                    {TablerIcons.IconFlag && <TablerIcons.IconFlag size={14} />}
-                  </Button>
-                  
-                  <Button variant="subtle" size="xs" p={6} style={{ borderRadius: '50%' }}>
-                    {TablerIcons.IconThumbUp && <TablerIcons.IconThumbUp size={14} />}
-                  </Button>
-                </Group>
-              </Group>
-              
-              <Text size="xs" c="dimmed">
-                Transcription by ElevenLabs API | Analysis by OpenAI GPT-4
-              </Text>
-            </Box>
+                {/* Chat messages */}
+                <MessageList 
+                  messages={messages}
+                  onMessageClick={handleMessageClick}
+                  currentTime={currentTime}
+                />
+              </>
+            )}
           </Paper>
         </Grid.Col>
         
         {/* Right panel - Analysis */}
         <Grid.Col span={{ base: 12, md: 3 }} style={{ height: '100%' }}>
           <Box style={{ height: '100%', overflow: 'auto' }}>
-            {/* Call Information */}
-            <Paper withBorder mb="md">
-              <Group p="sm" position="apart" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
-                <Text fw={500} size="sm">Call Information</Text>
-                {TablerIcons.IconInfoCircle && <TablerIcons.IconInfoCircle size={16} style={{ color: 'var(--mantine-color-gray-5)' }} />}
+            {detailsLoading ? (
+              <Group position="center" my="xl">
+                <Loader size="sm" />
+                <Text size="sm">Loading analysis...</Text>
               </Group>
-              
-              <Box p="md">
-                <Grid gutter="xs">
-                  <Grid.Col span={12}>
-                    <Text size="xs" c="dimmed">Agent</Text>
-                    <Text size="sm">Priya Patel</Text>
-                  </Grid.Col>
-                  
-                  <Grid.Col span={12}>
-                    <Text size="xs" c="dimmed">Customer ID</Text>
-                    <Text size="sm">CUST00584</Text>
-                  </Grid.Col>
-                  
-                  <Grid.Col span={12}>
-                    <Text size="xs" c="dimmed">Date & Time</Text>
-                    <Text size="sm">Aug 21, 2023 13:22</Text>
-                  </Grid.Col>
-                  
-                  <Grid.Col span={12}>
-                    <Text size="xs" c="dimmed">Duration</Text>
-                    <Text size="sm">15:18</Text>
-                  </Grid.Col>
-                  
-                  <Grid.Col span={12}>
-                    <Text size="xs" c="dimmed">Status</Text>
-                    <Badge color="blue" variant="light">Escalated</Badge>
-                  </Grid.Col>
-                </Grid>
+            ) : !recording ? (
+              <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                <Text c="dimmed">Select a recording to view analysis</Text>
               </Box>
-            </Paper>
-            
-            {/* AI Analysis */}
-            <Paper withBorder mb="md">
-              <Group p="sm" position="apart" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
-                <Text fw={500} size="sm">AI Analysis</Text>
-                {TablerIcons.IconCpu && <TablerIcons.IconCpu size={16} style={{ color: 'var(--mantine-color-gray-5)' }} />}
-              </Group>
-              
-              <Box p="md">
-                <Box mb="md">
-                  <Text size="xs" c="dimmed" mb="xs">Issue Category</Text>
-                  <Text size="sm">Transactions > Failed Transfer > Technical Error</Text>
-                </Box>
-                
-                <Box mb="md">
-                  <Text size="xs" c="dimmed" mb="xs">Severity</Text>
-                  <Badge color="red" variant="light">Critical</Badge>
-                </Box>
-                
-                <Box mb="md">
-                  <Text size="xs" c="dimmed" mb="xs">Customer Sentiment</Text>
-                  <Text size="sm" mb="xs">Started Negative, Ended Neutral</Text>
-                  
-                  <Group position="apart" mb="xs">
-                    <Text size="xs" c="red">Negative</Text>
-                    <Text size="xs" c="teal">Positive</Text>
-                  </Group>
-                  
-                  <Box style={{ 
-                    height: 8, 
-                    background: 'linear-gradient(to right, #ef4444, #d1d5db, #10b981)',
-                    borderRadius: 9999,
-                    position: 'relative',
-                    marginBottom: 8
-                  }}>
-                    <Box style={{ 
-                      width: 12, 
-                      height: 12, 
-                      background: 'white',
-                      border: '2px solid var(--mantine-color-gray-7)',
-                      borderRadius: '50%',
-                      position: 'absolute',
-                      top: '50%',
-                      left: '65%',
-                      transform: 'translate(-50%, -50%)'
-                    }} />
-                  </Box>
-                </Box>
-                
-                <Box mb="md">
-                  <Text size="xs" c="dimmed" mb="xs">Extracted Entities</Text>
-                  
-                  <Box style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
-                    <Group position="apart" py="xs" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
-                      <Text size="xs" c="dimmed">Error Code</Text>
-                      <Text size="xs" fw={500}>E-45632</Text>
-                    </Group>
-                    
-                    <Group position="apart" py="xs" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
-                      <Text size="xs" c="dimmed">Transfer Amount</Text>
-                      <Text size="xs" fw={500}>Rs. 45,000</Text>
-                    </Group>
-                    
-                    <Group position="apart" py="xs" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
-                      <Text size="xs" c="dimmed">Customer ID</Text>
-                      <Text size="xs" fw={500}>CUST00584</Text>
-                    </Group>
-                    
-                    <Group position="apart" py="xs" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
-                      <Text size="xs" c="dimmed">Account (Last 4)</Text>
-                      <Text size="xs" fw={500}>7832</Text>
-                    </Group>
-                    
-                    <Group position="apart" py="xs">
-                      <Text size="xs" c="dimmed">Transfer Type</Text>
-                      <Text size="xs" fw={500}>IMPS</Text>
-                    </Group>
-                  </Box>
-                </Box>
-              </Box>
-            </Paper>
-            
-            {/* Analysis Verification */}
-            <Paper withBorder mb="md">
-              <Group p="sm" position="apart" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
-                <Text fw={500} size="sm">Analysis Verification</Text>
-                <Button 
-                  variant="light" 
-                  size="xs"
-                  leftSection={<TablerIcons.IconCheck size={12} />}
-                >
-                  Approve
-                </Button>
-              </Group>
-              
-              <Box p="md">
-                <Text size="sm" mb="md">Is the AI analysis accurate and complete?</Text>
-                
-                <Group mb="md">
-                  <Button 
-                    variant="outline" 
-                    size="xs"
-                    leftSection={<TablerIcons.IconThumbUp size={14} />}
-                    style={{ flex: 1 }}
-                  >
-                    Accurate
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="xs"
-                    leftSection={<TablerIcons.IconEdit size={14} />}
-                    style={{ flex: 1 }}
-                  >
-                    Edit
-                  </Button>
-                </Group>
-                
-                <Box>
-                  <Text size="xs" c="dimmed" mb="xs">Comments (optional)</Text>
-                  <textarea 
-                    style={{ 
-                      width: '100%', 
-                      minHeight: '80px', 
-                      padding: '8px', 
-                      border: '1px solid var(--mantine-color-gray-3)', 
-                      borderRadius: 'var(--mantine-radius-sm)', 
-                      fontFamily: 'inherit', 
-                      fontSize: '0.75rem' 
-                    }}
-                    placeholder="Add your verification notes here..."
-                  />
-                </Box>
-              </Box>
-            </Paper>
+            ) : (
+              <AnalysisPanel recording={recording} analysis={analysis} />
+            )}
           </Box>
         </Grid.Col>
       </Grid>

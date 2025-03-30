@@ -1,7 +1,298 @@
 // src/pages/Settings.jsx
-import { useState } from 'react';
-import { Box, Title, Text, Group, Button, Paper, Grid, Switch, Select, TextInput, Tabs, Divider } from '@mantine/core';
-import * as TablerIcons from '@tabler/icons-react';
+import { useState, useEffect } from 'react';
+import { Box, Title, Text, Group, Button, Paper, Grid, Switch, Select, TextInput, Tabs, Divider, MultiSelect, Checkbox, Modal, Stack, Loader, Alert } from '@mantine/core';
+import { IconSettings, IconUser, IconBell, IconApi, IconFileText, IconLock, IconPlus, IconEdit, IconTrash, IconAlertCircle } from '@tabler/icons-react';
+import { useProfiles } from '../hooks/useProfiles';
+
+// Analysis Profile Editor Modal
+function ProfileEditorModal({ opened, onClose, initialData = null, onSave }) {
+  const [profileName, setProfileName] = useState('');
+  const [description, setDescription] = useState('');
+  const [isDefault, setIsDefault] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  const { types } = useProfiles(true);
+  
+  // Map types to MultiSelect format
+ // src/pages/Settings.jsx (continued)
+  // Map types to MultiSelect format
+  const typeOptions = types.map(type => ({
+    value: type.type_key,
+    label: type.display_name,
+    description: type.description
+  }));
+  
+  // Reset form when modal opens/closes or initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setProfileName(initialData.profile_name);
+      setDescription(initialData.description || '');
+      setIsDefault(initialData.is_default || false);
+      setSelectedTypes(initialData.analysis_types || []);
+    } else {
+      setProfileName('');
+      setDescription('');
+      setIsDefault(false);
+      setSelectedTypes([]);
+    }
+  }, [initialData, opened]);
+  
+  const handleSubmit = async () => {
+    if (!profileName) {
+      alert('Profile name is required');
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      await onSave({
+        profileName,
+        description,
+        isDefault,
+        analysisTypeKeys: selectedTypes
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert(`Failed to save profile: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={initialData ? 'Edit Analysis Profile' : 'Create New Analysis Profile'}
+      size="lg"
+    >
+      <Stack spacing="md">
+        <TextInput
+          label="Profile Name"
+          placeholder="Enter profile name"
+          value={profileName}
+          onChange={(e) => setProfileName(e.target.value)}
+          required
+        />
+        
+        <TextInput
+          label="Description"
+          placeholder="Enter profile description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        
+        <Checkbox
+          label="Set as default profile"
+          checked={isDefault}
+          onChange={(e) => setIsDefault(e.target.checked)}
+        />
+        
+        <MultiSelect
+          label="Analysis Types"
+          placeholder="Select analysis types"
+          data={typeOptions}
+          value={selectedTypes}
+          onChange={setSelectedTypes}
+          description="Select which analysis modules to include in this profile"
+        />
+        
+        <Group position="right" mt="md">
+          <Button variant="subtle" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} loading={loading}>
+            {initialData ? 'Update Profile' : 'Create Profile'}
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
+  );
+}
+
+// Analysis Profiles Management Component
+function AnalysisProfilesTab() {
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [profileToDelete, setProfileToDelete] = useState(null);
+  
+  const { 
+    profiles, 
+    types, 
+    loading, 
+    error, 
+    fetchProfiles, 
+    createProfile, 
+    updateProfile, 
+    deleteProfile 
+  } = useProfiles();
+  
+  const handleAddProfile = () => {
+    setSelectedProfile(null);
+    setEditorOpen(true);
+  };
+  
+  const handleEditProfile = (profile) => {
+    setSelectedProfile(profile);
+    setEditorOpen(true);
+  };
+  
+  const handleDeleteClick = (profile) => {
+    setProfileToDelete(profile);
+    setConfirmDeleteOpen(true);
+  };
+  
+  const handleConfirmDelete = async () => {
+    if (!profileToDelete) return;
+    
+    try {
+      await deleteProfile(profileToDelete.id);
+      setConfirmDeleteOpen(false);
+      setProfileToDelete(null);
+    } catch (error) {
+      console.error('Error deleting profile:', error);
+      alert(`Failed to delete profile: ${error.message}`);
+    }
+  };
+  
+  const handleSaveProfile = async (profileData) => {
+    if (selectedProfile) {
+      return await updateProfile(selectedProfile.id, profileData);
+    } else {
+      return await createProfile(profileData);
+    }
+  };
+  
+  return (
+    <Box>
+      <Group position="apart" mb="md">
+        <Title order={4}>Analysis Profiles</Title>
+        <Button 
+          leftSection={<IconPlus size={16} />}
+          onClick={handleAddProfile}
+        >
+          Add Profile
+        </Button>
+      </Group>
+      
+      {loading && (
+        <Group position="center" my="xl">
+          <Loader />
+          <Text>Loading profiles...</Text>
+        </Group>
+      )}
+      
+      {error && (
+        <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" my="md">
+          {error}
+        </Alert>
+      )}
+      
+      {!loading && !error && profiles.length === 0 && (
+        <Paper withBorder p="xl" style={{ textAlign: 'center' }}>
+          <Text size="lg" mb="md">No analysis profiles found</Text>
+          <Text c="dimmed" mb="xl">
+            Create your first analysis profile to define which types of analysis should be run on call recordings.
+          </Text>
+          <Button onClick={handleAddProfile}>Create Profile</Button>
+        </Paper>
+      )}
+      
+      {!loading && !error && profiles.length > 0 && (
+        <Grid>
+          {profiles.map((profile) => (
+            <Grid.Col key={profile.id} span={{ base: 12, md: 6 }}>
+              <Paper withBorder p="md">
+                <Group position="apart" mb="sm">
+                  <Box>
+                    <Group>
+                      <Text fw={500}>{profile.profile_name}</Text>
+                      {profile.is_default && (
+                        <Badge color="teal" variant="light">Default</Badge>
+                      )}
+                    </Group>
+                    <Text size="xs" c="dimmed">{profile.description}</Text>
+                  </Box>
+                  
+                  <Group spacing={8}>
+                    <Button 
+                      variant="subtle" 
+                      size="xs"
+                      p={0}
+                      onClick={() => handleEditProfile(profile)}
+                    >
+                      <IconEdit size={18} />
+                    </Button>
+                    
+                    <Button 
+                      variant="subtle" 
+                      size="xs"
+                      color="red"
+                      p={0}
+                      onClick={() => handleDeleteClick(profile)}
+                    >
+                      <IconTrash size={18} />
+                    </Button>
+                  </Group>
+                </Group>
+                
+                <Divider my="sm" />
+                
+                <Text size="xs" fw={500} mb="xs">Analysis Types</Text>
+                <Box>
+                  {profile.analysis_types && profile.analysis_types.map((typeKey) => {
+                    const typeObj = types.find(t => t.type_key === typeKey);
+                    return (
+                      <Badge key={typeKey} mr="xs" mb="xs">
+                        {typeObj ? typeObj.display_name : typeKey}
+                      </Badge>
+                    );
+                  })}
+                </Box>
+              </Paper>
+            </Grid.Col>
+          ))}
+        </Grid>
+      )}
+      
+      {/* Profile Editor Modal */}
+      <ProfileEditorModal
+        opened={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        initialData={selectedProfile}
+        onSave={handleSaveProfile}
+      />
+      
+      {/* Confirm Delete Modal */}
+      <Modal
+        opened={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        title="Confirm Delete"
+        size="sm"
+      >
+        <Box>
+          <Text mb="md">
+            Are you sure you want to delete the profile "{profileToDelete?.profile_name}"? This action cannot be undone.
+          </Text>
+          
+          <Group position="right">
+            <Button variant="subtle" onClick={() => setConfirmDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={handleConfirmDelete}>
+              Delete
+            </Button>
+          </Group>
+        </Box>
+      </Modal>
+    </Box>
+  );
+}
 
 function Settings() {
   const [activeTab, setActiveTab] = useState('general');
@@ -24,22 +315,25 @@ function Settings() {
           <Paper withBorder p="md">
             <Tabs value={activeTab} onChange={setActiveTab} orientation="vertical">
               <Tabs.List>
-                <Tabs.Tab value="general" leftSection={<TablerIcons.IconSettings size={16} />}>
+                <Tabs.Tab value="general" leftSection={<IconSettings size={16} />}>
                   General
                 </Tabs.Tab>
-                <Tabs.Tab value="account" leftSection={<TablerIcons.IconUser size={16} />}>
+                <Tabs.Tab value="account" leftSection={<IconUser size={16} />}>
                   Account
                 </Tabs.Tab>
-                <Tabs.Tab value="notifications" leftSection={<TablerIcons.IconBell size={16} />}>
+                <Tabs.Tab value="analysis_profiles" leftSection={<IconFileText size={16} />}>
+                  Analysis Profiles
+                </Tabs.Tab>
+                <Tabs.Tab value="notifications" leftSection={<IconBell size={16} />}>
                   Notifications
                 </Tabs.Tab>
-                <Tabs.Tab value="api" leftSection={<TablerIcons.IconApi size={16} />}>
+                <Tabs.Tab value="api" leftSection={<IconApi size={16} />}>
                   API Settings
                 </Tabs.Tab>
-                <Tabs.Tab value="transcription" leftSection={<TablerIcons.IconFileText size={16} />}>
+                <Tabs.Tab value="transcription" leftSection={<IconFileText size={16} />}>
                   Transcription
                 </Tabs.Tab>
-                <Tabs.Tab value="security" leftSection={<TablerIcons.IconLock size={16} />}>
+                <Tabs.Tab value="security" leftSection={<IconLock size={16} />}>
                   Security
                 </Tabs.Tab>
               </Tabs.List>
@@ -108,58 +402,16 @@ function Settings() {
                 </Grid>
               </Box>
               
-              <Box mb="lg">
-                <Text fw={500} mb="xs">System Performance</Text>
-                <Divider mb="md" />
-                
-                <Grid>
-                  <Grid.Col span={8}>
-                    <Text>Max Upload Size</Text>
-                    <Text size="xs" c="dimmed">Maximum file size for call recordings (MB)</Text>
-                  </Grid.Col>
-                  <Grid.Col span={4}>
-                    <TextInput defaultValue="50" />
-                  </Grid.Col>
-                </Grid>
-                
-                <Divider my="md" />
-                
-                <Grid>
-                  <Grid.Col span={8}>
-                    <Text>Concurrency Limit</Text>
-                    <Text size="xs" c="dimmed">Maximum number of simultaneous processes</Text>
-                  </Grid.Col>
-                  <Grid.Col span={4}>
-                    <TextInput defaultValue="10" />
-                  </Grid.Col>
-                </Grid>
-                
-                <Divider my="md" />
-                
-                <Grid>
-                  <Grid.Col span={8}>
-                    <Text>Auto-refresh Dashboard</Text>
-                    <Text size="xs" c="dimmed">Automatically refresh dashboard data</Text>
-                  </Grid.Col>
-                  <Grid.Col span={4}>
-                    <Select
-                      data={[
-                        'Off',
-                        '30 seconds',
-                        '1 minute',
-                        '5 minutes',
-                        '15 minutes'
-                      ]}
-                      defaultValue="5 minutes"
-                    />
-                  </Grid.Col>
-                </Grid>
-              </Box>
-              
               <Group position="right">
                 <Button variant="outline">Cancel</Button>
                 <Button>Save Changes</Button>
               </Group>
+            </Paper>
+          )}
+          
+          {activeTab === 'analysis_profiles' && (
+            <Paper withBorder p="md">
+              <AnalysisProfilesTab />
             </Paper>
           )}
           
