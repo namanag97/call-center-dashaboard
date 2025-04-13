@@ -1,49 +1,50 @@
 {
   "name": "conista",
+  "private": true,
   "version": "1.0.0",
   "description": "Analyse calls",
   "author": "Naman",
   "type": "module",
+  "packageManager": "bun@1.1.3",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "dev": "cd apps/web && bun run dev",
-    "list": "node scripts/dev.js list",
-    "generate": "node scripts/dev.js generate",
-    "parse-prd": "node scripts/dev.js parse-prd"
+    "dev": "bun --filter web run dev",
+    "build": "bun --filter web run build",
+    "build:web": "bun --filter web run build",
+    "lint": "bun --filter web run lint",
+    "lint:web": "bun --filter web run lint",
+    "test": "bun --filter web run test",
+    "test:web": "bun --filter web run test",
+    "storybook": "bun --filter web run storybook",
+    "build-storybook": "bun --filter web run build-storybook",
+    "build:shared-types": "node build-shared-types.js",
+    "taskmaster": "node scripts/dev.js",
+    "taskmaster:list": "node scripts/dev.js list",
+    "taskmaster:generate": "node scripts/dev.js generate",
+    "taskmaster:parse-prd": "node scripts/dev.js parse-prd",
+    "dev:sync": "node browser-sync-setup.js",
+    "storybook:sync": "concurrently \"bun run storybook\" \"node browser-sync-setup.js --port 6007 --proxy http://localhost:6006\""
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
-    "@heroicons/react": "^2.2.0",
-    "boxen": "^8.0.1",
-    "browser-sync": "^3.0.4",
-    "chalk": "^4.1.2",
-    "cli-table3": "^0.6.5",
-    "commander": "^11.1.0",
     "concurrently": "^9.1.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.21.2",
-    "fastmcp": "^1.20.5",
-    "figlet": "^1.8.0",
-    "fuse.js": "^7.0.0",
-    "gradient-string": "^3.0.0",
-    "helmet": "^8.1.0",
-    "inquirer": "^12.5.0",
-    "jsonwebtoken": "^9.0.2",
-    "lru-cache": "^10.2.0",
-    "openai": "^4.89.0",
-    "ora": "^8.2.0"
+    "browser-sync": "^3.0.4"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.2",
+    "prettier": "^3.5.3",
+    "eslint": "^9.24.0",
+    "@axe-core/playwright": "^4.10.1",
+    "rollup-plugin-visualizer": "^5.14.0"
   },
   "msw": {
     "workerDirectory": [
       "apps/web/public"
     ]
-  },
-  "devDependencies": {
-    "@axe-core/playwright": "^4.10.1",
-    "rollup-plugin-visualizer": "^5.14.0"
   }
 }
