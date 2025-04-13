@@ -1,0 +1,307 @@
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Introduction/UI Components" />
+
+# UI Component Library
+
+This section documents the UI components used in the Call Analysis Platform.
+
+## Component Categories
+
+The UI component library is organized into several categories:
+
+### Primitive Components
+
+These are the foundational building blocks of the UI:
+
+- **Basic Primitives**:
+  - Button - Action triggers with multiple variants and states
+  - Input - Text input fields with validation states
+  - Label - Form field labels
+  - Text - Typography components
+  - Icon - SVG icon components
+  - Alert - Notification alerts 
+  - Spinner - Loading indicators
+
+- **Advanced Primitives**:
+  - Modal - Dialog windows
+  - Dropdown - Selection menus
+  - Checkbox - Toggle inputs
+  - Radio - Option selection
+  - Tooltip - Contextual information
+  - Badge - Status indicators
+  - ProgressBar - Progress visualization
+
+### Layout Components
+
+Components that structure the overall UI:
+
+- AppLayout - Main application shell
+- LoginPageLayout - Authentication screens 
+- Sidebar - Main navigation
+- TopHeader - App header with user menu
+- PageHeader - Content area headers
+
+### Data Display Components
+
+Components for displaying and interacting with call data:
+
+- DataTable - Tabular data with sorting and selection
+- Pagination - Navigation between data pages
+- SearchBar - Text search interface
+- FilterControls - Advanced filtering
+- StatisticCard - Key metrics display
+- ChartComponent - Data visualization
+
+### Authentication Components
+
+User authentication related components:
+
+- LoginForm - Authentication form
+- UserMenu - User profile and options
+
+### Call Detail Components
+
+Components for displaying call details:
+
+- AudioPlayer - Call audio playback
+- TranscriptViewer - Synchronized transcript display
+- AnalysisResultsPanel - AI analysis visualization
+- QAPanel - Quality assurance inputs
+
+### Call Upload Components
+
+Components for uploading call recordings:
+
+- CallUploader - File selection and upload
+- FileList/FileItem - Upload queue display
+- MetadataForm - Call metadata input
+
+### Settings Components
+
+Components for system configuration:
+
+- SettingsLayout - Settings interface structure
+- ProviderList - API provider management
+- CategoryListEditor - Analysis category management
+
+## Usage Guidelines
+
+### Component Props
+
+Each component in our library follows a consistent props structure:
+
+- **Variants**: Most components offer multiple visual styles through a `variant` prop with options like `primary`, `secondary`, `outline`, `ghost`, and `link`.
+- **Sizes**: Components typically provide size options via a `size` prop with values `xs`, `sm`, `md`, `lg`, and `xl`.
+- **States**: Components handle various states like `loading`, `disabled`, `error`, etc., through boolean props.
+- **Accessibility**: All components include appropriate ARIA attributes and keyboard interactions. Always provide text alternatives for non-text content.
+
+### Common Component Patterns
+
+#### Form Components
+
+Form components (Input, Dropdown, Checkbox, Radio) follow a consistent pattern:
+
+```tsx
+// Basic usage
+<Input
+  label="Email"
+  placeholder="your@email.com"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  isRequired
+/>
+
+// With validation
+<Input
+  label="Password"
+  type="password"
+  value={password}
+  onChange={(e) => setPassword(e.target.value)}
+  error={errors.password}
+  status={errors.password ? 'error' : 'default'}
+  helperText={errors.password ? undefined : 'Password must be at least 8 characters'}
+  isRequired
+/>
+```
+
+#### Interactive Components
+
+Interactive components like Button and Dropdown handle loading states consistently:
+
+```tsx
+// Loading state
+<Button variant="primary" isLoading>
+  Submit
+</Button>
+
+// Disabled state
+<Button variant="primary" disabled>
+  Submit
+</Button>
+```
+
+#### Component Composition
+
+Components can be composed to create more complex UIs:
+
+```tsx
+// Form with multiple components
+<form onSubmit={handleSubmit}>
+  <div className="space-y-4">
+    <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} />
+    <Dropdown 
+      label="Category" 
+      options={categoryOptions} 
+      value={category} 
+      onChange={setCategory} 
+    />
+    <Checkbox 
+      label="I agree to the terms" 
+      checked={agreed} 
+      onChange={(e) => setAgreed(e.target.checked)} 
+    />
+    <Button type="submit" variant="primary">
+      Submit
+    </Button>
+  </div>
+</form>
+```
+
+### Using MSW with Components
+
+For components that make API calls, we use Mock Service Worker (MSW) to simulate API responses. In Storybook, you can define handlers to mock different API states:
+
+```tsx
+// Example LoginForm story with MSW
+export const WithError: Story = {
+  args: {
+    error: 'Invalid email or password. Please try again.',
+  },
+  parameters: {
+    msw: {
+      handlers: [
+        http.post('/api/auth/login', async () => {
+          await delay(500);
+          return new HttpResponse(
+            JSON.stringify({ message: 'Invalid email or password' }),
+            {
+              status: 401,
+              headers: { 'Content-Type': 'application/json' }
+            }
+          )
+        }),
+      ],
+    },
+  },
+}
+```
+
+## Design Tokens
+
+The design system uses a consistent set of tokens defined in Tailwind:
+
+- **Colors**: Primary, secondary, accent, neutral, and semantic (success, error, etc.)
+- **Typography**: Font families, sizes, weights, and line heights
+- **Spacing**: Consistent spacing scale
+- **Borders**: Border widths, radii, and shadows
+- **Z-index**: Layering control
+- **Transitions**: Animation durations and easing
+
+### Color Usage Guidelines
+
+- **Primary**: Use for main CTAs and focus elements
+- **Secondary**: Use for supporting elements and secondary actions
+- **Neutral**: Use for text, backgrounds, and borders
+- **Semantic**: Use status colors (success, error, warning, info) only for their intended purpose
+
+## Testing
+
+Components are tested using:
+
+- **Storybook**: Visual testing of all states and variants
+- **Unit Tests**: Functionality testing with Vitest
+- **A11y Testing**: Accessibility verification with Storybook a11y addon
+
+### Story Pattern
+
+We follow a consistent pattern for creating component stories:
+
+1. Define a `Meta` object with component metadata
+2. Export a default story showing the basic usage
+3. Create specific stories for each variant and state
+4. Use args to control component props
+5. Use decorators for providing context when needed
+6. Use MSW handlers to simulate API interactions
+
+Example:
+
+```tsx
+import type { Meta, StoryObj } from '@storybook/react'
+import { Button } from './Button'
+
+const meta: Meta<typeof Button> = {
+  component: Button,
+  title: 'UI/Button',
+  argTypes: {
+    variant: {
+      control: { type: 'select' },
+      options: ['primary', 'secondary', 'outline', 'ghost', 'link'],
+    },
+    size: {
+      control: { type: 'select' },
+      options: ['xs', 'sm', 'md', 'lg', 'xl'],
+    },
+  },
+  parameters: {
+    layout: 'centered',
+  },
+  tags: ['autodocs'],
+}
+
+export default meta
+type Story = StoryObj<typeof Button>
+
+export const Default: Story = {
+  args: {
+    children: 'Button',
+  },
+}
+
+export const Primary: Story = {
+  args: {
+    variant: 'primary',
+    children: 'Primary Button',
+  },
+}
+
+export const Loading: Story = {
+  args: {
+    isLoading: true,
+    children: 'Loading',
+  },
+}
+```
+
+## Accessibility Guidelines
+
+All components are built with accessibility in mind:
+
+- Ensure sufficient color contrast (WCAG AA minimum)
+- Provide keyboard navigation support
+- Include appropriate ARIA attributes
+- Support screen readers with semantic HTML
+- Ensure form inputs have associated labels
+- Provide focus indicators for interactive elements
+
+## Contributing
+
+When creating new components, follow these guidelines:
+
+1. Define proper TypeScript interfaces
+2. Implement all required variants and states
+3. Make components accessible
+4. Write comprehensive Storybook stories
+5. Add unit tests for component logic
+6. Document your component with JSDoc comments
+7. Follow the established naming and file structure conventions 

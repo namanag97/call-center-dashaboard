@@ -1,0 +1,345 @@
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Guidelines/Component Patterns" />
+
+# Component Patterns and Guidelines
+
+This guide outlines the patterns and guidelines for building and using components in our application.
+
+## File Structure
+
+Each component should follow this file structure:
+
+```
+ComponentName/
+├── ComponentName.tsx       # Main component implementation
+├── ComponentName.stories.tsx  # Storybook stories
+├── ComponentName.test.tsx  # Unit tests
+└── index.ts               # Re-export (optional for smaller components)
+```
+
+For simpler components, you can use a flat structure:
+
+```
+components/
+├── ComponentName.tsx
+├── ComponentName.stories.tsx
+├── ComponentName.test.tsx
+└── ...
+```
+
+## Component Implementation
+
+### Naming
+
+- Use PascalCase for component names (e.g., `Button`, `UserMenu`)
+- Use camelCase for props, state variables, and functions (e.g., `onClick`, `isLoading`)
+- Use UPPER_SNAKE_CASE for constants (e.g., `DEFAULT_TIMEOUT`)
+
+### Props
+
+- Define all props using TypeScript interfaces
+- Keep props focused on the component's responsibility
+- Provide sensible defaults for optional props
+- Use proper React typing (e.g., `React.ReactNode`, `React.MouseEvent`)
+
+```tsx
+interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'link';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  isLoading?: boolean;
+  isDisabled?: boolean;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  children: React.ReactNode;
+  className?: string;
+}
+```
+
+### Component Structure
+
+- Use functional components with TypeScript
+- Use named exports for components
+- Include JSDoc comments for component documentation
+- Organize imports logically (React, third-party, local)
+
+```tsx
+/**
+ * Button component with multiple variants and states.
+ * Use for primary actions, secondary actions, and navigation.
+ */
+const Button: React.FC<ButtonProps> = ({
+  variant = 'primary',
+  size = 'md',
+  isLoading = false,
+  isDisabled = false,
+  leftIcon,
+  rightIcon,
+  onClick,
+  children,
+  className = '',
+  ...rest
+}) => {
+  // Implementation...
+};
+
+export default Button;
+```
+
+## Styling Guidelines
+
+We use Tailwind CSS for styling components with these patterns:
+
+### Base Classes
+
+- Start with base classes that apply to all variants
+- Use Tailwind's built-in classes whenever possible
+- Use `twMerge` to handle class merging and overrides
+
+```tsx
+const baseClasses = 'inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+```
+
+### Variant Classes
+
+- Use objects to map variants to their classes
+- Keep the mapping clear and organized
+- Consider extracting complex mappings to constants outside the component
+
+```tsx
+const variantClasses = {
+  primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500',
+  secondary: 'bg-secondary-100 text-secondary-800 hover:bg-secondary-200 focus:ring-secondary-500',
+  outline: 'border border-neutral-300 text-neutral-700 hover:bg-neutral-50 focus:ring-primary-500',
+  ghost: 'text-neutral-700 hover:bg-neutral-100 focus:ring-neutral-500',
+  link: 'text-primary-600 hover:text-primary-700 underline focus:ring-primary-500 p-0',
+};
+```
+
+### Size Classes
+
+- Create size variants that scale proportionally
+- Ensure text and spacing scale appropriately
+- Consider touch targets for mobile (min 44px height for interactive elements)
+
+```tsx
+const sizeClasses = {
+  xs: 'text-xs py-1 px-2',
+  sm: 'text-sm py-1.5 px-3',
+  md: 'text-base py-2 px-4',
+  lg: 'text-lg py-2.5 px-5',
+  xl: 'text-xl py-3 px-6',
+};
+```
+
+### State Classes
+
+- Handle loading, disabled, and other states consistently
+- Use conditional classes based on props
+- Follow accessibility guidelines for states
+
+```tsx
+const stateClasses = isDisabled 
+  ? 'opacity-50 cursor-not-allowed'
+  : 'cursor-pointer';
+```
+
+## Component Composition
+
+### Children and Slots
+
+- Use `children` for primary content
+- Use specific props for named slots (e.g., `leftIcon`, `rightIcon`)
+- Consider using render props for complex slot patterns
+
+```tsx
+// Basic children
+<Button>Click me</Button>
+
+// With slots
+<Button 
+  leftIcon={<Icon name="mail" />}
+  rightIcon={<Icon name="arrow-right" />}
+>
+  Send Email
+</Button>
+
+// Render prop pattern
+<Dropdown
+  trigger={({ isOpen }) => (
+    <Button rightIcon={isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}>
+      Options
+    </Button>
+  )}
+  items={dropdownItems}
+/>
+```
+
+### Forwarding Refs
+
+- Use `forwardRef` for components that need to expose DOM refs
+- Type refs properly with TypeScript
+
+```tsx
+import React, { forwardRef } from 'react';
+
+const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ label, error, ...props }, ref) => {
+    return (
+      <div>
+        {label && <Label>{label}</Label>}
+        <input ref={ref} {...props} />
+        {error && <div className="text-error-500">{error}</div>}
+      </div>
+    );
+  }
+);
+
+Input.displayName = 'Input';
+```
+
+### Higher-Order Components
+
+For components that need to share common functionality, consider using HOCs or custom hooks.
+
+```tsx
+// HOC Example
+const withTooltip = (Component) => {
+  return (props) => {
+    // Tooltip logic
+    return <Component {...props} />;
+  };
+};
+
+// Custom Hook Example
+const useFormInput = (initialValue) => {
+  const [value, setValue] = useState(initialValue);
+  
+  const handleChange = (e) => {
+    setValue(e.target.value);
+  };
+  
+  return {
+    value,
+    onChange: handleChange,
+  };
+};
+```
+
+## Form Components
+
+Form components should follow these additional guidelines:
+
+- Always associate labels with inputs using `htmlFor` and `id`
+- Handle validation and error states consistently
+- Support both controlled and uncontrolled modes when appropriate
+- Provide appropriate ARIA attributes for accessibility
+
+```tsx
+// Form component usage
+<form onSubmit={handleSubmit}>
+  <div className="space-y-4">
+    <Input
+      id="email"
+      label="Email"
+      type="email"
+      value={email}
+      onChange={handleChange}
+      error={errors.email}
+      isRequired
+    />
+    
+    <Input
+      id="password"
+      label="Password"
+      type="password"
+      value={password}
+      onChange={handleChange}
+      error={errors.password}
+      isRequired
+    />
+    
+    <Button type="submit" isLoading={isSubmitting}>
+      Sign In
+    </Button>
+  </div>
+</form>
+```
+
+## Testing Guidelines
+
+Each component should have comprehensive tests:
+
+### Unit Tests
+
+- Test all component variants and states
+- Verify that props are applied correctly
+- Test user interactions (clicks, inputs, etc.)
+- Mock external dependencies as needed
+
+```tsx
+// Button unit test example
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Button } from './Button';
+
+describe('Button Component', () => {
+  it('renders with default props', () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByRole('button')).toHaveTextContent('Click me');
+  });
+  
+  it('calls onClick when clicked', () => {
+    const handleClick = jest.fn();
+    render(<Button onClick={handleClick}>Click me</Button>);
+    fireEvent.click(screen.getByRole('button'));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+  
+  it('disables the button when isDisabled is true', () => {
+    render(<Button isDisabled>Click me</Button>);
+    expect(screen.getByRole('button')).toBeDisabled();
+  });
+});
+```
+
+### Storybook Tests
+
+- Create stories for all component variants and states
+- Use controls to demonstrate prop changes
+- Use the play function for interaction testing
+- Document component usage in the story
+
+## Common Pitfalls and Best Practices
+
+### Performance Optimization
+
+- Use `React.memo` for components that re-render often
+- Avoid creating functions in render (use `useCallback`)
+- Use `useMemo` for expensive calculations
+- Avoid deeply nested component trees
+
+### Common Anti-Patterns
+
+- Avoid using inline styles (use Tailwind classes)
+- Don't rely on `!important` in styles
+- Avoid prop drilling (use context or state management)
+- Don't mix different styling approaches
+- Avoid complex conditional rendering (extract to separate components)
+
+### Accessibility Tips
+
+- Ensure sufficient color contrast (WCAG AA minimum)
+- Support keyboard navigation for interactive elements
+- Include proper ARIA attributes
+- Use semantic HTML elements
+- Test with screen readers
+- Provide alternatives for non-text content
+
+## Documentation Best Practices
+
+- Document component API with JSDoc comments
+- Create comprehensive Storybook stories
+- Include usage examples in MDX documentation
+- Document accessibility considerations
+- Explain component composition patterns 

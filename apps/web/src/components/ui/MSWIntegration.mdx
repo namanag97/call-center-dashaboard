@@ -1,0 +1,335 @@
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Guidelines/Using MSW" />
+
+# Using Mock Service Worker (MSW) in Storybook
+
+This guide explains how to effectively use Mock Service Worker (MSW) to simulate API calls in Storybook. MSW is integrated into our Storybook setup, allowing you to create realistic component stories that interact with mock APIs.
+
+## Basic MSW Setup
+
+Our Storybook configuration already includes the MSW integration through the `MSWDecorator`. This decorator:
+
+1. Sets up the MSW browser worker
+2. Loads default handlers from the mocks directory
+3. Applies custom handlers defined in individual stories
+
+## Creating MSW Handlers for Stories
+
+To add MSW handlers to your story, use the `parameters.msw.handlers` property:
+
+```tsx
+import type { Meta, StoryObj } from '@storybook/react'
+import { HttpResponse, http, delay } from 'msw'
+import YourComponent from './YourComponent'
+
+const meta: Meta<typeof YourComponent> = {
+  component: YourComponent,
+  title: 'Components/YourComponent',
+  // Component metadata...
+}
+
+export default meta
+type Story = StoryObj<typeof YourComponent>
+
+export const WithApiSuccess: Story = {
+  args: {
+    // Component props...
+  },
+  parameters: {
+    msw: {
+      handlers: [
+        http.get('/api/data', async () => {
+          await delay(1000); // Simulate network delay
+          return HttpResponse.json({
+            success: true,
+            data: { /* your mock data */ }
+          })
+        }),
+      ],
+    },
+  },
+}
+
+export const WithApiError: Story = {
+  args: {
+    // Component props...
+  },
+  parameters: {
+    msw: {
+      handlers: [
+        http.get('/api/data', async () => {
+          await delay(500);
+          return new HttpResponse(
+            JSON.stringify({ 
+              success: false, 
+              error: 'Something went wrong' 
+            }), 
+            {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' }
+            }
+          )
+        }),
+      ],
+    },
+  },
+}
+```
+
+## Common API Response Patterns
+
+### Successful Responses
+
+```tsx
+// Simple success response
+http.get('/api/users', () => {
+  return HttpResponse.json({
+    users: [
+      { id: 1, name: 'John Doe' },
+      { id: 2, name: 'Jane Smith' }
+    ]
+  })
+})
+
+// Success response with delay
+http.get('/api/users', async () => {
+  await delay(1000);
+  return HttpResponse.json({
+    users: [
+      { id: 1, name: 'John Doe' },
+      { id: 2, name: 'Jane Smith' }
+    ]
+  })
+})
+```
+
+### Error Responses
+
+```tsx
+// 401 Unauthorized
+http.post('/api/auth/login', () => {
+  return new HttpResponse(
+    JSON.stringify({ 
+      message: 'Invalid credentials' 
+    }),
+    {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    }
+  )
+})
+
+// 404 Not Found
+http.get('/api/users/:id', () => {
+  return new HttpResponse(
+    JSON.stringify({ 
+      message: 'User not found' 
+    }),
+    {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' }
+    }
+  )
+})
+
+// 500 Server Error
+http.get('/api/data', () => {
+  return new HttpResponse(
+    JSON.stringify({ 
+      message: 'Internal server error' 
+    }),
+    {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    }
+  )
+})
+```
+
+### Handling Request Data
+
+```tsx
+// Working with request parameters
+http.get('/api/users/:id', ({ params }) => {
+  const userId = params.id;
+  return HttpResponse.json({
+    user: { id: userId, name: 'John Doe' }
+  })
+})
+
+// Processing form or JSON data
+http.post('/api/auth/login', async ({ request }) => {
+  const data = await request.json();
+  const { email, password } = data;
+  
+  if (email === 'user@example.com' && password === 'password') {
+    return HttpResponse.json({
+      user: { id: 1, email, name: 'John Doe' },
+      token: 'fake-jwt-token'
+    })
+  }
+  
+  return new HttpResponse(
+    JSON.stringify({ message: 'Invalid credentials' }),
+    { status: 401, headers: { 'Content-Type': 'application/json' } }
+  )
+})
+
+// Handling query parameters
+http.get('/api/users', ({ request }) => {
+  const url = new URL(request.url);
+  const page = url.searchParams.get('page') || '1';
+  const limit = url.searchParams.get('limit') || '10';
+  
+  return HttpResponse.json({
+    page: Number(page),
+    limit: Number(limit),
+    users: [/* mock users */]
+  })
+})
+```
+
+## Best Practices
+
+1. **Match API Structure**: Ensure mock responses match the expected API structure to avoid component errors.
+
+2. **Test Edge Cases**: Create stories that simulate various API states:
+   - Loading (using `delay()`)
+   - Success with different data sets
+   - Empty responses
+   - Error responses
+   - Validation errors
+
+3. **Organize Handlers**: For complex components, organize handlers in a separate file to keep stories clean.
+
+4. **Reuse Handlers**: Extract common handlers to a shared file and import them into multiple stories.
+
+5. **Document Expected API Behavior**: Add comments in your stories to explain the expected API behavior.
+
+## Example: Authentication Story
+
+Here's a complete example of a LoginForm component story with MSW:
+
+```tsx
+import type { Meta, StoryObj } from '@storybook/react'
+import { HttpResponse, http, delay } from 'msw'
+import LoginForm from './LoginForm'
+
+const meta: Meta<typeof LoginForm> = {
+  component: LoginForm,
+  title: 'Auth/LoginForm',
+  parameters: {
+    layout: 'centered',
+  },
+  tags: ['autodocs'],
+  argTypes: {
+    onSubmit: { action: 'submitted' },
+  },
+}
+
+export default meta
+type Story = StoryObj<typeof LoginForm>
+
+export const Default: Story = {
+  args: {},
+  parameters: {
+    msw: {
+      handlers: [
+        http.post('/api/auth/login', async () => {
+          await delay(1000);
+          return HttpResponse.json({
+            user: {
+              id: '1',
+              email: 'user@example.com',
+              name: 'John Doe',
+            },
+            token: 'fake-jwt-token',
+          })
+        }),
+      ],
+    },
+  },
+}
+
+export const Loading: Story = {
+  args: {
+    isLoading: true,
+  },
+}
+
+export const WithError: Story = {
+  args: {
+    error: 'Invalid email or password. Please try again.',
+  },
+  parameters: {
+    msw: {
+      handlers: [
+        http.post('/api/auth/login', async () => {
+          await delay(500);
+          return new HttpResponse(
+            JSON.stringify({ message: 'Invalid email or password' }),
+            {
+              status: 401,
+              headers: {
+                'Content-Type': 'application/json',
+              }
+            }
+          )
+        }),
+      ],
+    },
+  },
+}
+
+export const SuccessfulLogin: Story = {
+  args: {},
+  play: async () => {
+    // You can add play functions for interaction testing if needed
+  },
+  parameters: {
+    msw: {
+      handlers: [
+        http.post('/api/auth/login', async ({ request }) => {
+          const data = await request.json();
+          const { email, password } = data as { email: string, password: string };
+          
+          await delay(500);
+          
+          if (email === 'admin@example.com' && password === 'password123') {
+            return HttpResponse.json({
+              user: {
+                id: '1',
+                email: 'admin@example.com',
+                name: 'Admin User',
+                role: 'admin',
+              },
+              token: 'fake-jwt-token',
+            })
+          }
+          
+          return new HttpResponse(
+            JSON.stringify({ message: 'Invalid email or password' }),
+            {
+              status: 401,
+              headers: {
+                'Content-Type': 'application/json',
+              }
+            }
+          )
+        }),
+      ],
+    },
+  },
+}
+```
+
+## Troubleshooting
+
+If you encounter issues with MSW in your stories:
+
+1. **Console Errors**: Check the browser console for MSW-related errors
+2. **Network Tab**: Inspect the Network tab to see if requests are being intercepted
+3. **Handler Path**: Ensure the API path in your handler exactly matches the path in your component
+4. **Content Type**: Verify that you're using the correct Content-Type header for responses
+5. **Restart Storybook**: Sometimes a fresh restart helps resolve MSW initialization issues 

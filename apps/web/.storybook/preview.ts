@@ -1,7 +1,18 @@
 import type { Preview } from '@storybook/react'
+import { RouterDecorator } from './decorators/RouterDecorator'
+import { MockStoreDecorator } from './decorators/MockStoreDecorator'
+import { ThemeDecorator } from './decorators/ThemeDecorator'
+import { MSWDecorator } from './decorators/MSWDecorator'
 import '../src/index.css'
 
+// Apply all decorators to Storybook
 const preview: Preview = {
+  decorators: [
+    ThemeDecorator,
+    RouterDecorator,
+    MockStoreDecorator,
+    MSWDecorator,
+  ],
   parameters: {
     actions: { argTypesRegex: '^on[A-Z].*' },
     controls: {

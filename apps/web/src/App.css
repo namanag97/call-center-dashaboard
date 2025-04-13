@@ -26,6 +26,9 @@
   }
 }
 
+/* Import the Tailwind utilities layer before using @layer utilities */
+@tailwind utilities;
+
 @layer utilities {
   .animate-spin-slow {
     animation: logo-spin infinite 20s linear;
