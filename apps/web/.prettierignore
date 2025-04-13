@@ -1,0 +1,10 @@
+# Directories
+node_modules
+dist
+build
+coverage
+public
+
+# Files
+.eslintcache
+*.log 

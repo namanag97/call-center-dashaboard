@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "generatedAt": "2025-04-13T09:24:11.193Z",
+    "tasksAnalyzed": 10,
+    "thresholdScore": 5,
+    "projectName": "Your Project Name",
+    "usedResearch": false
+  },
+  "complexityAnalysis": [
+    {
+      "taskId": 1,
+      "taskTitle": "Setup Project Foundation and Tooling",
+      "complexityScore": 8,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the project foundation setup into logical phases focusing on: 1) monorepo initialization, 2) frontend app configuration, 3) developer tooling setup, 4) testing infrastructure, and 5) CI pipeline configuration. For each subtask, include specific commands, configuration files to create, and validation steps.",
+      "reasoning": "This task involves setting up multiple complex tools and configurations that form the foundation of the entire project. It requires specialized knowledge across several technologies (Bun, Vite, Tailwind, Storybook, testing tools) and careful integration between them. The configuration decisions made here will impact all subsequent development."
+    },
+    {
+      "taskId": 2,
+      "taskTitle": "Implement Primitive Components and Storybook Configuration",
+      "complexityScore": 7,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide the primitive components implementation into logical groups based on component complexity and relationships: 1) basic input components (Button, Input, Checkbox), 2) text and display components (Text, Label, Badge), 3) interactive components (Modal, Dropdown, Tooltip), and 4) Storybook configuration and documentation. For each component group, include design token requirements, component API definitions, and test scenarios.",
+      "reasoning": "This task involves implementing 13+ primitive components with variants, states, and stories. Each component requires careful design consideration, proper typing, and comprehensive testing. The Storybook configuration adds another layer of complexity. The components built here will be used throughout the application, so quality and consistency are critical."
+    },
+    {
+      "taskId": 3,
+      "taskTitle": "Implement Layout Components",
+      "complexityScore": 6,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down the layout implementation into these focused areas: 1) core application shell with responsive container, 2) navigation components (Sidebar, TopHeader, NavLink), 3) page structure components (PageHeader, LoginPageLayout), and 4) Storybook stories and responsive testing. For each subtask, include responsive design requirements, component composition patterns, and expected props/interfaces.",
+      "reasoning": "Layout components require careful consideration of responsive design, component composition, and navigation state. While less numerous than primitive components, they're more complex in their interactions and structural role. The task involves building the application's skeleton that will house all other components."
+    },
+    {
+      "taskId": 4,
+      "taskTitle": "Implement Authentication Components",
+      "complexityScore": 5,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide the authentication implementation into: 1) login form UI with validation logic, 2) user menu and session display components, 3) authentication types and MSW handlers, and 4) Storybook stories covering all authentication states. For each subtask, include form validation requirements, state management considerations, and security best practices.",
+      "reasoning": "Authentication components involve form validation, state management, and security considerations. The complexity is moderate as it focuses on a specific functional area with clear boundaries. The task depends on primitive and layout components being completed first."
+    },
+    {
+      "taskId": 5,
+      "taskTitle": "Implement Data Display Components",
+      "complexityScore": 8,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the data display implementation into: 1) core DataTable with sorting and selection, 2) pagination and filtering controls, 3) search functionality, 4) data visualization components (StatisticCard, ChartComponent), and 5) data models, MSW handlers and Storybook stories. For each subtask, include data handling requirements, state management patterns, and performance considerations.",
+      "reasoning": "Data display components are highly complex due to the interactive nature of tables, filters, and charts. These components must handle various data states, user interactions, and performance considerations. The DataTable alone has multiple features (sorting, selection) that add complexity. The visualization components add another dimension of complexity."
+    },
+    {
+      "taskId": 6,
+      "taskTitle": "Implement Call Detail Components",
+      "complexityScore": 9,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Divide the call detail implementation into: 1) audio player with playback controls, 2) transcript viewer with synchronization, 3) analysis results panel, 4) QA input panel, and 5) state synchronization, types, and Storybook stories. For each subtask, include media handling requirements, synchronization mechanisms, and data visualization approaches.",
+      "reasoning": "This task involves complex media handling (audio playback), synchronized components (transcript highlighting with audio), and intricate data visualization (analysis results). The synchronization between components adds significant complexity. These are specialized components with unique technical challenges beyond typical UI elements."
+    },
+    {
+      "taskId": 7,
+      "taskTitle": "Implement Call Upload Components",
+      "complexityScore": 7,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down the upload implementation into: 1) file selection and drag-drop interface, 2) upload progress tracking and display, 3) metadata form and validation, and 4) types, MSW handlers, and Storybook stories. For each subtask, include file handling requirements, progress tracking mechanisms, and error handling approaches.",
+      "reasoning": "Upload components involve file handling, progress tracking, and metadata management. The drag-drop functionality and progress visualization add complexity. File validation and handling large uploads present technical challenges that require careful implementation."
+    },
+    {
+      "taskId": 8,
+      "taskTitle": "Implement Settings Components",
+      "complexityScore": 6,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide the settings implementation into: 1) settings layout and navigation, 2) provider management components, 3) category editing and system settings, and 4) types, MSW handlers, and Storybook stories. For each subtask, include form handling patterns, data validation requirements, and state management considerations.",
+      "reasoning": "Settings components involve form handling and data management for configuration. While complex in terms of the variety of settings to manage, the patterns are more standardized than other areas. The components are primarily forms and lists with typical CRUD operations."
+    },
+    {
+      "taskId": 9,
+      "taskTitle": "Implement State Management and Page Assembly",
+      "complexityScore": 9,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the state management and page assembly into: 1) core store architecture and slice pattern implementation, 2) authentication and settings stores, 3) call-related stores (list, detail, upload), 4) routing and lazy loading setup, and 5) page composition and integration testing. For each subtask, include state design patterns, component integration approaches, and performance optimization techniques.",
+      "reasoning": "This task involves designing and implementing the entire application state architecture, connecting all components to their data sources, and assembling complete pages. It requires deep understanding of state management patterns, component composition, and application flow. The integration of all previous components adds significant complexity."
+    },
+    {
+      "taskId": 10,
+      "taskTitle": "Implement E2E Testing and Refinement",
+      "complexityScore": 7,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide the E2E testing and refinement into: 1) core user flow test implementation, 2) responsive and accessibility testing, 3) performance optimization and bundle analysis, and 4) visual regression testing and stabilization. For each subtask, include test scenario definitions, performance metrics to track, and acceptance criteria.",
+      "reasoning": "E2E testing requires comprehensive test scenarios covering multiple user flows. Performance optimization involves technical analysis and refinement. Accessibility auditing adds another dimension of complexity. This task touches all aspects of the application but focuses on validation and refinement rather than new feature development."
+    }
+  ]
+}
