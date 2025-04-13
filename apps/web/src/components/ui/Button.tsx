@@ -21,7 +21,7 @@ const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props 
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium transition-colors duration-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2'
+  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-md transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 active:scale-[0.98]'
   
   const variantClasses = {
     primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500',
@@ -46,7 +46,7 @@ const Button: React.FC<ButtonProps> = ({
         baseClasses,
         variantClasses[variant],
         sizeClasses[size],
-        isDisabled && 'opacity-70 cursor-not-allowed',
+        isDisabled ? 'opacity-70 cursor-not-allowed' : 'shadow-sm hover:shadow transform',
         className
       )}
       {...props}

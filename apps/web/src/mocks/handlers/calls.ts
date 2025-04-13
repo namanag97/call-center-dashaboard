@@ -270,67 +270,78 @@ const applySorting = (calls: CallRecord[], sort?: SortOptions): CallRecord[] => 
   })
 }
 
-// Call handlers
-export const callHandlers = [
-  // Get calls list with pagination, filtering, and sorting
+// Calls API handlers
+export const callsHandlers = [
+  // Get calls list with filtering, sorting, and pagination
   http.get('/api/calls', async ({ request }) => {
-    await delay(Math.floor(Math.random() * 500) + 300) // 300-800ms delay
-
+    await delay(500);
+    const url = new URL(request.url);
+    
     try {
-      const url = new URL(request.url)
+      // Parse query parameters
+      const filters = parseFilterOptions(url);
+      const sort = parseSortOptions(url);
       
-      // Parse pagination parameters
-      const page = parseInt(url.searchParams.get('page') || '1', 10)
-      const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10)
-      
-      // Parse filtering and sorting options
-      const filters = parseFilterOptions(url)
-      const sort = parseSortOptions(url)
+      // Parse pagination params
+      const page = parseInt(url.searchParams.get('page') || '1', 10);
+      const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
       
       // Apply filters and sorting
-      let processedCalls = calls
-      processedCalls = applyFilters(processedCalls, filters)
-      processedCalls = applySorting(processedCalls, sort)
+      let filteredCalls = applyFilters(calls, filters);
+      filteredCalls = applySorting(filteredCalls, sort);
       
-      // Simulate empty results if specifically requested (for testing empty state)
-      if (url.searchParams.get('empty') === 'true') {
-        processedCalls = []
-      }
-  
+      // Calculate total items and pages
+      const totalItems = filteredCalls.length;
+      const totalPages = Math.ceil(totalItems / pageSize);
+      
       // Apply pagination
-      const totalItems = processedCalls.length
-      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
-      const safePageNumber = Math.min(Math.max(1, page), totalPages)
-      
-      const start = (safePageNumber - 1) * pageSize
-      const end = start + pageSize
-      const paginatedCalls = processedCalls.slice(start, end)
-      
-      // Create pagination data
-      const pagination: PaginationState = {
-        page: safePageNumber,
-        pageSize,
-        totalItems,
-        totalPages,
-      }
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      const paginatedCalls = filteredCalls.slice(start, end);
       
       // Build response
       const response: CallListResponse = {
         data: paginatedCalls,
-        pagination,
+        pagination: {
+          page,
+          pageSize,
+          totalItems,
+          totalPages
+        }
+      };
+      
+      // Add metadata to the response (though not part of the type)
+      const responseWithMeta = {
+        ...response,
+        meta: {
+          filters,
+          sort: sort || { field: 'date', direction: 'desc' }
+        }
+      };
+      
+      // Simulate occasional server errors (helpful for testing error handling)
+      if (Math.random() < 0.05) { // 5% chance of error
+        return new HttpResponse(JSON.stringify({ 
+          error: { 
+            code: 'SERVER_ERROR',
+            message: 'A server error occurred while processing your request' 
+          } 
+        }), { status: 500 });
       }
-  
-      return HttpResponse.json(response)
+      
+      return HttpResponse.json(responseWithMeta);
+      
     } catch (error) {
-      // Simulate a server error
+      console.error('Error in calls mock handler:', error);
+      
       const errorResponse: ApiErrorResponse = {
         error: {
           code: 'SERVER_ERROR',
-          message: 'An unexpected error occurred while processing your request.',
-          details: { error: String(error) }
+          message: 'An error occurred while processing your request'
         }
-      }
-      return new HttpResponse(JSON.stringify(errorResponse), { status: 500 })
+      };
+      
+      return new HttpResponse(JSON.stringify(errorResponse), { status: 500 });
     }
   }),
 

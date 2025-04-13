@@ -155,7 +155,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
       }
     };
     
-    const handleError = (e: Event) => {
+    const handleError = () => {
       setIsLoading(false);
       setError(new Error('Error loading audio file'));
       if (onError) {

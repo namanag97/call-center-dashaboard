@@ -146,5 +146,11 @@ export interface CallStatistics {
 // Call Detail Types
 export * from './call-detail';
 
+// Upload Types
+export * from './upload';
+
+// Settings Types
+export * from './settings';
+
 // Re-export all types
-export * from './index'; 
+export * from './index';

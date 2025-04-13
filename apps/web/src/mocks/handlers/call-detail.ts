@@ -9,7 +9,7 @@ import {
   UserRole,
   ApiErrorResponse,
   CallStatus
-} from '@conista/shared-types'
+} from 'shared-types'
 
 // Sample transcripts map (call ID -> transcript entries)
 const transcripts: Record<string, TranscriptEntry[]> = {

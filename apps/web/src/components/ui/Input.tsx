@@ -16,7 +16,8 @@ const Input: React.FC<InputProps> = ({
   className = '',
   ...props
 }) => {
-  const baseClasses = 'w-full rounded-md border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1'
+  // Enhanced base classes with better transitions and focus handling
+  const baseClasses = 'w-full rounded-md border transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm hover:shadow'
   
   const variantClasses = {
     primary: 'border-neutral-300 focus:border-primary-500 focus:ring-primary-500',
@@ -47,7 +48,7 @@ const Input: React.FC<InputProps> = ({
     variantClasses[variant],
     sizeClasses[size],
     status !== 'default' && statusClasses[status],
-    disabled && 'bg-neutral-100 cursor-not-allowed opacity-60',
+    disabled ? 'bg-neutral-100 cursor-not-allowed opacity-60' : 'hover:border-neutral-400',
     (leftElement || rightElement) && 'pl-10',
     rightElement && 'pr-10',
     className
@@ -56,13 +57,13 @@ const Input: React.FC<InputProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label className="block mb-1 text-sm font-medium text-neutral-800">
+        <label className="block mb-1 text-sm font-medium text-neutral-800 transition-colors duration-200">
           {label} {isRequired && <span className="text-error-500">*</span>}
         </label>
       )}
       <div className="relative">
         {leftElement && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500 transition-colors duration-200">
             {leftElement}
           </div>
         )}
@@ -74,13 +75,13 @@ const Input: React.FC<InputProps> = ({
           aria-required={isRequired}
         />
         {rightElement && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500">
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500 transition-colors duration-200">
             {rightElement}
           </div>
         )}
       </div>
       {(error || helperText) && (
-        <div className={`mt-1 text-sm ${error ? 'text-error-500' : 'text-neutral-500'}`}>
+        <div className={`mt-1 text-sm ${error ? 'text-error-500' : 'text-neutral-500'} transition-all duration-200 ease-in-out`}>
           {error || helperText}
         </div>
       )}

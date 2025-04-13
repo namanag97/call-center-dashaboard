@@ -9,13 +9,14 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "node scripts/dev.js",
+    "dev": "cd apps/web && bun run dev",
     "list": "node scripts/dev.js list",
     "generate": "node scripts/dev.js generate",
     "parse-prd": "node scripts/dev.js parse-prd"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@heroicons/react": "^2.2.0",
     "boxen": "^8.0.1",
     "browser-sync": "^3.0.4",
     "chalk": "^4.1.2",
@@ -40,5 +41,9 @@
     "workerDirectory": [
       "apps/web/public"
     ]
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
+    "rollup-plugin-visualizer": "^5.14.0"
   }
 }

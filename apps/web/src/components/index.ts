@@ -1,6 +1,9 @@
 // Export UI components
 export * from './ui'
 
+// Export upload components
+export * from './upload'
+
 // Export Layout components
 export * from './layout'
 

@@ -30,7 +30,6 @@ const Modal: React.FC<ModalProps> = ({
   closeOnEsc = true,
   closeOnOverlayClick = true,
   initialFocusRef,
-  className = '',
   overlayClassName = '',
   contentClassName = '',
   headerClassName = '',
@@ -113,42 +112,41 @@ const Modal: React.FC<ModalProps> = ({
       aria-modal="true"
       role="dialog"
     >
-      {/* Backdrop/overlay */}
-      <div className="absolute inset-0 bg-neutral-900 bg-opacity-50 animate-fade-in" />
+      {/* Backdrop/overlay with improved animation */}
+      <div className="absolute inset-0 bg-neutral-900 bg-opacity-50 transition-opacity duration-300 ease-in-out opacity-100" />
       
-      {/* Modal content */}
+      {/* Modal content with improved animation */}
       <div
         ref={modalRef}
         className={twMerge(
-          'relative z-10 w-full rounded-lg bg-white shadow-xl animate-slide-in',
+          'relative z-10 w-full rounded-lg bg-white shadow-xl transform transition-all duration-300 ease-out scale-100 opacity-100',
           sizeClasses[size],
           contentClassName
         )}
         tabIndex={-1}
       >
         {/* Header with close button */}
-        {(title || onClose) && (
-          <div className={twMerge(
-            'flex items-center justify-between px-6 py-4 border-b border-neutral-200',
-            headerClassName
-          )}>
-            {title && (
-              <h3 className="text-lg font-medium text-neutral-900">
-                {title}
-              </h3>
-            )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-neutral-400 hover:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-md"
-              aria-label="Close"
-            >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
+        <div className={twMerge(
+          'flex items-center justify-between px-6 py-4 border-b border-neutral-200',
+          headerClassName
+        )}>
+          {title && (
+            <h3 className="text-lg font-medium text-neutral-900">
+              {title}
+            </h3>
+          )}
+          {!title && <div />} {/* Empty div to maintain layout when no title */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-neutral-400 hover:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-md transition-colors duration-200"
+            aria-label="Close"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
         
         {/* Body */}
         <div className={twMerge(

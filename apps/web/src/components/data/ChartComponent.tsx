@@ -307,10 +307,10 @@ const ChartComponent: React.FC<ChartComponentProps> = ({
               dataKey="value"
               onMouseEnter={onPieEnter}
             >
-              {pieData.map((entry, index) => (
+              {pieData.map((_, index) => (
                 <Cell 
-                  key={`cell-${index}`} 
-                  fill={colors[index % colors.length]} 
+                  key={`cell-${index}`}
+                  fill={colors[index % colors.length]}
                 />
               ))}
             </Pie>

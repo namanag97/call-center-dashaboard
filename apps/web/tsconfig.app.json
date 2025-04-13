@@ -20,7 +20,13 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    
+    /* Path Mapping */
+    "paths": {
+      "shared-types": ["../../packages/shared-types/src"],
+      "shared-types/*": ["../../packages/shared-types/src/*"]
+    }
   },
   "include": ["src"]
 }

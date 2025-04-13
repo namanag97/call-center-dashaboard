@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, test, expect, beforeEach } from 'vitest';
 import AudioPlayer from '../AudioPlayer';
@@ -18,9 +17,6 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 describe('AudioPlayer Component', () => {
   const mockAudioUrl = 'https://example.com/sample-audio.mp3';
   const mockTimeUpdate = vi.fn();
-  const mockLoadedMetadata = vi.fn();
-  const mockEnded = vi.fn();
-  const mockError = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();

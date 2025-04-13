@@ -1,125 +1,111 @@
-import React, { forwardRef } from 'react'
-import { twMerge } from 'tailwind-merge'
+import React from 'react';
+import { twMerge } from 'tailwind-merge';
 
-export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {
-  label?: string
-  description?: string
-  error?: string
-  size?: 'sm' | 'md' | 'lg'
-  variant?: 'primary' | 'secondary'
-  checkboxClassName?: string
-  labelClassName?: string
-  errorClassName?: string
-  descriptionClassName?: string
-  wrapperClassName?: string
+/**
+ * Props for the Checkbox component
+ */
+export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
+  /**
+   * ID for the checkbox
+   */
+  id?: string;
+  /**
+   * Whether the checkbox is checked
+   */
+  checked?: boolean;
+  /**
+   * Called when the checkbox value changes
+   */
+  onChange?: (checked: boolean) => void;
+  /**
+   * Label text
+   */
+  label?: string;
+  /**
+   * Description text
+   */
+  description?: string;
+  /**
+   * Whether the checkbox is disabled
+   */
+  disabled?: boolean;
+  /**
+   * Error message
+   */
+  error?: string;
+  /**
+   * Custom class for the container
+   */
+  className?: string;
 }
 
-const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(({
+/**
+ * Checkbox component
+ */
+export const Checkbox: React.FC<CheckboxProps> = ({
+  id,
+  checked = false,
+  onChange,
   label,
   description,
-  error,
-  size = 'md',
-  variant = 'primary',
   disabled = false,
-  required = false,
-  checkboxClassName = '',
-  labelClassName = '',
-  errorClassName = '',
-  descriptionClassName = '',
-  wrapperClassName = '',
+  error,
   className = '',
-  id,
-  ...props
-}, ref) => {
-  // Generate a unique id if not provided
-  const checkboxId = id || `checkbox-${Math.random().toString(36).substring(2, 9)}`
-  
-  const baseCheckboxClasses = 'form-checkbox rounded border focus:ring-offset-1 focus:outline-none focus:ring-2'
-  
-  const variantClasses = {
-    primary: 'text-primary-600 focus:border-primary-500 focus:ring-primary-500',
-    secondary: 'text-secondary-500 focus:border-secondary-500 focus:ring-secondary-500',
-  }
-  
-  const sizeClasses = {
-    sm: 'h-3.5 w-3.5',
-    md: 'h-4 w-4',
-    lg: 'h-5 w-5',
-  }
-  
-  const labelSizeClasses = {
-    sm: 'text-sm',
-    md: 'text-base',
-    lg: 'text-lg',
-  }
-  
-  const disabledClasses = disabled ? 'opacity-60 cursor-not-allowed' : ''
-  
+  ...rest
+}) => {
+  /**
+   * Handle checkbox change
+   */
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (onChange) {
+      onChange(e.target.checked);
+    }
+  };
+
   return (
-    <div className={twMerge('flex', wrapperClassName)}>
-      <div className="flex h-5 items-center">
+    <div className={twMerge('flex', className)}>
+      <div className="flex items-center h-5">
         <input
+          id={id}
           type="checkbox"
-          id={checkboxId}
+          checked={checked}
+          onChange={handleChange}
           disabled={disabled}
-          required={required}
-          ref={ref}
-          aria-describedby={description ? `${checkboxId}-description` : undefined}
-          aria-invalid={error ? 'true' : 'false'}
           className={twMerge(
-            baseCheckboxClasses,
-            variantClasses[variant],
-            sizeClasses[size],
-            disabledClasses,
-            error && 'border-error-500',
-            checkboxClassName
+            'w-4 h-4 rounded border text-primary-600 focus:ring-primary-500',
+            disabled ? 'bg-gray-100 cursor-not-allowed' : 'cursor-pointer',
+            error ? 'border-red-500' : 'border-gray-300',
+            className
           )}
-          {...props}
+          {...rest}
         />
       </div>
-      {(label || description || error) && (
+      {(label || description) && (
         <div className="ml-2">
           {label && (
             <label 
-              htmlFor={checkboxId}
+              htmlFor={id}
               className={twMerge(
-                'font-medium text-neutral-900',
-                labelSizeClasses[size],
-                disabled && 'opacity-60 cursor-not-allowed',
-                labelClassName
+                'text-sm font-medium', 
+                disabled ? 'text-gray-400' : 'text-gray-700',
+                error ? 'text-red-500' : ''
               )}
             >
               {label}
-              {required && <span className="ml-1 text-error-500">*</span>}
             </label>
           )}
           {description && (
-            <p 
-              id={`${checkboxId}-description`}
-              className={twMerge(
-                'text-sm text-neutral-500',
-                descriptionClassName
-              )}
-            >
+            <p className={`text-xs mt-1 ${disabled ? 'text-gray-400' : 'text-gray-500'}`}>
               {description}
             </p>
           )}
           {error && (
-            <p 
-              className={twMerge(
-                'mt-1 text-sm text-error-500',
-                errorClassName
-              )}
-            >
-              {error}
-            </p>
+            <p className="text-xs text-red-500 mt-1">{error}</p>
           )}
         </div>
       )}
     </div>
-  )
-})
+  );
+};
 
-Checkbox.displayName = 'Checkbox'
-
-export default Checkbox 
+export default Checkbox; 

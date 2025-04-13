@@ -221,4 +221,88 @@ export const authHandlers = [
 
     return HttpResponse.json({ user })
   }),
+
+  // Get current user session
+  http.get('/api/auth/session', async ({ request }) => {
+    await delay(Math.floor(Math.random() * 300) + 100)
+
+    // Check for auth header
+    const authHeader = request.headers.get('Authorization')
+
+    // Check for auth token in cookies (for browsers that automatically include cookies)
+    const cookies = request.headers.get('Cookie') || ''
+    const hasAuthCookie = cookies.includes('auth_token=')
+
+    if ((!authHeader || !authHeader.startsWith('Bearer ')) && !hasAuthCookie) {
+      return HttpResponse.json(
+        {
+          code: AuthErrorCode.InvalidCredentials,
+          message: 'No valid session found. Please log in.',
+          authenticated: false
+        },
+        { status: 401 }
+      )
+    }
+
+    // Extract token from header or cookie
+    let token = ''
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1]
+    } else if (hasAuthCookie) {
+      const tokenMatch = cookies.match(/auth_token=([^;]+)/)
+      token = tokenMatch ? tokenMatch[1] : ''
+    }
+
+    // Check for valid token format
+    if (!token || !token.includes('mock-jwt-token-')) {
+      return HttpResponse.json(
+        {
+          code: AuthErrorCode.InvalidCredentials,
+          message: 'Invalid session token. Please log in again.',
+          authenticated: false
+        },
+        { status: 401 }
+      )
+    }
+
+    const userId = token.split('-').pop()
+    let user = users.find(u => u.id === userId)
+
+    // Handle temporary users (created during login)
+    if (!user && userId?.startsWith('temp-')) {
+      // Extract email from token (would be handled differently in a real app)
+      const email = token.split('-')[2] || 'user@example.com'
+      
+      user = {
+        id: userId,
+        name: email.split('@')[0],
+        email: email,
+        role: UserRole.Viewer,
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        lastLogin: new Date().toISOString(),
+        avatarUrl: 'https://randomuser.me/api/portraits/lego/1.jpg' // Default avatar for temp users
+      }
+    }
+
+    if (!user) {
+      return HttpResponse.json(
+        {
+          code: AuthErrorCode.InvalidCredentials,
+          message: 'Session expired. Please log in again.',
+          authenticated: false
+        },
+        { status: 401 }
+      )
+    }
+
+    // Update last login time
+    user.lastLogin = new Date().toISOString()
+
+    // Return authenticated user
+    return HttpResponse.json({
+      user,
+      authenticated: true,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
+    })
+  }),
 ]
